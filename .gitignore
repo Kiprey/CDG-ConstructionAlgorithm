@@ -1,0 +1,9 @@
+CMakeFiles/
+node_modules/
+bin/
+test/
+build/  
+
+CMakeCache.txt
+cmake_install.cmake
+Makefile
