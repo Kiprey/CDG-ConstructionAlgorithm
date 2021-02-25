@@ -56,3 +56,4 @@ include_directories(${SVF_HEADER})
 
 
 add_subdirectory(src)
+add_subdirectory(examples)
