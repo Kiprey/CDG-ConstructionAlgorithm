@@ -2,9 +2,9 @@ llvm_map_components_to_libnames(llvm_libs bitwriter core ipo irreader instcombin
 file (GLOB SOURCES
    *.cpp
 )
-add_executable(svf-ex ${SOURCES})
+add_executable(cdg ${SOURCES})
 
-target_link_libraries(svf-ex ${SVF_LIB} ${LLVMCudd} ${llvm_libs})
+target_link_libraries(cdg ${SVF_LIB} ${LLVMCudd} ${llvm_libs})
 
-set_target_properties( svf-ex PROPERTIES
+set_target_properties( cdg PROPERTIES
                        RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin )

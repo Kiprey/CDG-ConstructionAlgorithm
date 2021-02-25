@@ -1,8 +1,5 @@
 CMakeFiles/
-node_modules/
-bin/
-test/
-build/  
 
 CMakeCache.txt
-Makefile    
+Makefile  
+cmake_install.cmake  
