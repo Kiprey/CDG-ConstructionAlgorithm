@@ -1,5 +1,2 @@
-CMakeFiles/
-
-CMakeCache.txt
-Makefile  
-cmake_install.cmake  
+!*.cpp
+!CMakeLists.txt
