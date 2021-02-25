@@ -1,4 +1,4 @@
-# CDG 控制依赖图 构建算法
+# Control Dependence Graph (CDG) 控制依赖图 构建算法
 
 > 注意：该项目依赖 [SVF库](https://github.com/SVF-tools/SVF)
 > 
