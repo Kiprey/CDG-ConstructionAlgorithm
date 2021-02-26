@@ -11,29 +11,63 @@ void PostOrderTraversalPDTNode(CDMap cdMap, CDG* cdg, const DomTreeNode* pdn)
 
     // 最后处理根节点
     // 获取当前节点的 CDSet
-    CDSet cd = cdMap[
-        cdg->getNodeIDFromBB(
-            pdn->getBlock())];
+    NodeID nodeID = cdg->getNodeIDFromBB(   pdn->getBlock() );
+    CDSet cd = cdMap[nodeID];
     for(auto iter = pdn->begin(); iter != pdn->end(); iter++)
     {
         // 获取当前遍历的basicblock所对应的 CDSet;
-        CDSet childCDS = cdMap[
-                            cdg->getNodeIDFromBB(
-                                (*iter)->getBlock())];
+        NodeID childNodeID = cdg->getNodeIDFromBB(
+                                (*iter)->getBlock());
+        CDSet childCDS = cdMap[childNodeID];
         //  a. 计算当前结点 N 的 CD 与 后支配树中 N 的每个直接子结点的CD 的交集 INT
         CDSet INT = cd & childCDS;
+        // 如果当前节点与子节点完全没有交集，则跳过当前子节点
+        if(INT.size() == 0)
+            continue;
+            
+        assert(childCDS.size() == 1 && "按照");
         //  b. 如果 INT 与 CD 相等，则将子节点中对应的控制依赖用 R 来代替。
+        CDGNode* cdn = cdg->getCDGNode(nodeID);
         if(cd == INT)
         {
-
+            /// @todo 参考下面的这个 childCDS == INT 分支完成
         }
-        else
         //  c. 如果存在子节点的控制依赖都是 INT，则删除 R 中对应的控制依赖，并用对应 子节点的控制依赖来代替。
+        //  此处 childCDS 可能 cd 中的子集，即与交集 INT 相等
+        else if(childCDS == INT)
         {
-            //  此处 childCDS 必须是 cd 中的子集，即与交集 INT 相等
-            assert(childCDS == INT);
-            
+            // 获取交集childCDS 中对应 CD 的 edge
+            // 遍历当前节点的入边，查找满足 INT 的对应 src 节点以及 edge label
+            // 由于交集可能有1个以上的节点（可能），因此为了保守起见，使用双重for循环遍历删除当前节点对应的 edge
+            /// @fixme: 以下循环中可能出现节点错误使用的情况，即打算使用当前节点的 regionNode，但实际编写代码使用的是 当前Node
+            for(auto cdsIter1 = INT.begin(); cdsIter1 != INT.end(); cdsIter1++)
+            {
+                // 获取交集中的某个依赖对象
+                CDSetElem cdse = *cdsIter1;
+                for(auto edgeIter = cdn->InEdgeBegin(); edgeIter != cdn->InEdgeEnd(); edgeIter++)
+                {
+                    CDGEdge* edge = *edgeIter;
+                    // 如果遍历当前节点的regionNode，发现这条入边刚好是从依赖对象指过来，则删除该边
+                    if(edge->getSrcID() == cdse.getNodeID() 
+                        && edge->getEdgeKind() == cdse.getLabel())
+                    {
+                        edge->getSrcNode()->removeOutgoingEdge(edge);
+                        cdn->removeIncomingEdge(edge);
+                        delete edge;
+                    }
+                }
+            }
+            // 最后从 childRegionNode 那边连过来一条到当前 RegionNode
+            /// @fixme: childRegion 和 cdnRegion 的指定
+            CDGEdge* newEdge = new CDGEdge(childRegion, cdnRegion, CDGEdge::LabelType::None); 
+            childRegion->addOutgoingEdge(newEdge);
+            cdnRegion->addIncomingEdge(newEdge);
         }
+        else 
+            // 剩下两种情况不予考虑，分别是 1. CD 被 childCDS 包含;    2. CD 和 childCDS 不完全相交
+            // 如果出现上面这两种情况，大概率出bug，或者原先算法没有理清
+            assert(0 && "PostOrderTraversalPDTNode 中没有考虑到当前节点的 CDSet 和 子节点的 CDSet 其他可能的情况");
+        
     }
 }
 
