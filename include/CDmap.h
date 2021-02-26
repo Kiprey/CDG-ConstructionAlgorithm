@@ -39,7 +39,7 @@ ControlDependenceSet operator& (ControlDependenceSet& cds1, ControlDependenceSet
 typedef map<CDGNode, ControlDependenceSet> ControlDependenceMap;
 // 设置缩写
 typedef ControlDependenceMap CDMap;
-typedef ControlDependenceSetElement CDE;
-typedef ControlDependenceSet CDS; 
+typedef ControlDependenceSetElement CDSetElem;
+typedef ControlDependenceSet CDSet; 
 
 #endif
