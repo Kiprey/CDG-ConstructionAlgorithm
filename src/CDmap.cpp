@@ -1,5 +1,33 @@
 #include "CDmap.h"
 
+ControlDependenceSetElement::ControlDependenceSetElement(size_t _id, CDGEdge::LabelType ty)
+    : _CDG_ID(_id), _label(ty) {}
+
+bool ControlDependenceSetElement::operator<(const ControlDependenceSetElement& e) const
+{
+    if(_CDG_ID < e._CDG_ID)   
+        return true;
+    else if(_CDG_ID == e._CDG_ID) 
+        return false;
+    else
+        return _label < e._label;
+}
+
+bool ControlDependenceSetElement::operator==(const ControlDependenceSetElement& e) const
+{
+    return _CDG_ID == e._CDG_ID && _label == e._label;
+}
+
+size_t ControlDependenceSetElement::getNodeID()
+{
+    return _CDG_ID;
+}
+
+CDGEdge::LabelType ControlDependenceSetElement::getLabel()
+{
+    return _label;
+}
+
 ControlDependenceSet operator& (ControlDependenceSet& cds1, ControlDependenceSet& cds2)
 {
     ControlDependenceSet result;
