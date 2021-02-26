@@ -20,7 +20,13 @@ typedef ControlDependenceEdge CDGEdge;
 // 设置ControlDependenceGraph 的类型
 class ControlDependenceGraph : public GenericGraph<ControlDependenceNode,ControlDependenceEdge>
 {
+public:
+    ControlDependenceGraph(){
+
+    }
+    void initCDG(SVFFunction *fun );//construct initial CDG
     // NULL
+private:
 };
 
 
