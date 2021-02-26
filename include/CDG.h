@@ -1,6 +1,8 @@
 #ifndef CDG_H
 #define CDG_H
 
+#include <map>
+
 #include "Graphs/GenericGraph.h"
 #include "Graphs/SVFG.h"
 
@@ -23,7 +25,15 @@ class ControlDependenceGraph : public GenericGraph<ControlDependenceNode,Control
 public:
     ControlDependenceGraph();
     void initCDG(SVFFunction *fun );//construct initial CDG
+    inline void addCDGNode(NodeID id, NodeType* node);
+    inline CDGNode* getCDGNode(NodeID id);
+    inline bool hasCDGNode(NodeID id);
+    inline void removeCDGNode(NodeType* node);
+    NodeID getNodeIDFromBB(BasicBlock* bb);
 private:
+    // BasicBlock* -> CDG Node ID
+    map<BasicBlock*, NodeID> _bb2CDGNodeID;
+    PostDominatorTree* PDT = nullptr;
 };
 
 
@@ -49,7 +59,7 @@ public:
 
 private:
     BasicBlock* _bb;
-    static size_t _nextNodeID;
+    static NodeID _nextNodeID;
 };
 
 #endif

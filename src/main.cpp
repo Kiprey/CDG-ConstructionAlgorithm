@@ -19,13 +19,11 @@ using namespace std;
 //                                        llvm::cl::desc("Memory Leak Detection"));
 
 ControlDependenceGraph* cdGraph = nullptr;
-PostDominatorTree* PDT = nullptr;
 
 int main(int argc, char ** argv) {
-    // 1. 生成 initial CDG
-    // 2. 生成后向支配树
-    // 3. 插入RegionNode
-    
+    ControlDependenceGraph* cdGraph = new ControlDependenceGraph();
+    // print CDG
+    // delete node/edge/graph/PDT
     return 0;
 }
 

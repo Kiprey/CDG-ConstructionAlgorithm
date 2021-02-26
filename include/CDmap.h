@@ -14,14 +14,14 @@ using namespace std;
 // 例如依赖 { 1, F }
 class ControlDependenceSetElement{
 public:
-    ControlDependenceSetElement(size_t _id, CDGEdge::LabelType ty);
+    ControlDependenceSetElement(NodeID _id, CDGEdge::LabelType ty);
     // 排序时优先按照 节点编号 排序，例如 {1, T} < {1, F} < {2, T}
     bool operator<(const ControlDependenceSetElement& e) const;
     bool operator==(const ControlDependenceSetElement& e) const;
-    size_t getNodeID();
+    NodeID getNodeID();
     CDGEdge::LabelType getLabel();
 private:
-    size_t _CDG_ID;
+    NodeID _CDG_ID;
     CDGEdge::LabelType _label;
 };
 
@@ -30,7 +30,7 @@ typedef set<ControlDependenceSetElement> ControlDependenceSet;
 // 实现两个 ControlDependenceSet 取交集的函数
 ControlDependenceSet operator& (ControlDependenceSet& cds1, ControlDependenceSet& cds2);
 // 设置数据结构 map
-typedef map<size_t, ControlDependenceSet> ControlDependenceMap;
+typedef map<NodeID, ControlDependenceSet> ControlDependenceMap;
 // 设置缩写
 typedef ControlDependenceMap CDMap;
 typedef ControlDependenceSetElement CDSetElem;
