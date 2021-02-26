@@ -18,7 +18,7 @@ using namespace std;
 // static llvm::cl::opt<bool> LEAKCHECKER("leak", llvm::cl::init(false),
 //                                        llvm::cl::desc("Memory Leak Detection"));
 
-ControlDependenceGraph* CDG = nullptr;
+ControlDependenceGraph* cdGraph = nullptr;
 PostDominatorTree* PDT = nullptr;
 
 int main(int argc, char ** argv) {

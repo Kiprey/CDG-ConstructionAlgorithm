@@ -21,11 +21,8 @@ typedef ControlDependenceEdge CDGEdge;
 class ControlDependenceGraph : public GenericGraph<ControlDependenceNode,ControlDependenceEdge>
 {
 public:
-    ControlDependenceGraph(){
-
-    }
+    ControlDependenceGraph();
     void initCDG(SVFFunction *fun );//construct initial CDG
-    // NULL
 private:
 };
 
@@ -37,8 +34,7 @@ public:
     enum LabelType { T, F, None };
     ControlDependenceEdge(ControlDependenceNode* s, 
                        ControlDependenceNode* d, 
-                       LabelType k)
-        : GenericCDEdgeTy(s,d,k) {}
+                       LabelType k);
 };
 
 
@@ -47,13 +43,13 @@ class ControlDependenceNode : public GenericCDNodeTy
 {
 public:
     enum NodeType { ControlNode, RegionNode };
-    ControlDependenceNode(size_t id, NodeType ty) :  GenericCDNodeTy(id, ty) {  };
-    
-    void setBasicBlock(BasicBlock* bb) { _bb = bb; }
-    BasicBlock* getBasicBlock() { return _bb; } 
+    ControlDependenceNode(NodeType ty);
+    void setBasicBlock(BasicBlock* bb);
+    BasicBlock* getBasicBlock();
 
 private:
     BasicBlock* _bb;
+    static size_t _nextNodeID;
 };
 
 #endif
