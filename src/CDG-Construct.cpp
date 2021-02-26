@@ -4,9 +4,14 @@
 #include "Graphs/SVFG.h"
 #include "WPA/Andersen.h"
 #include "SABER/LeakChecker.h"
+#include "CDG.h"
 #include "SVF-FE/PAGBuilder.h"
-#include <iostream>
 
+
+/*
+template<class NodeTy,class EdgeTy>
+class GenericGraph
+*/
 
 using namespace SVF;
 using namespace llvm;
@@ -81,6 +86,7 @@ void traverseOnVFG(const SVFG* vfg, Value* val){
 }
 
 int main(int argc, char ** argv) {
+    ControlDependenceGraph cdg;
     int arg_num = 0;
     char **arg_value = new char*[argc];
     std::vector<std::string> moduleNameVec;

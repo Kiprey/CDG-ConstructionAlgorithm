@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 3.4.3)
 PROJECT(CDG-Construct)
+
+# 头文件目录
+include_directories(include)
+
 if (DEFINED LLVM_DIR)
         set(ENV{LLVM_DIR} "${LLVM_DIR}")
     endif()
