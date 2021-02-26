@@ -28,7 +28,7 @@ private:
 // 设置数据结构 set
 typedef set<ControlDependenceSetElement> ControlDependenceSet;
 // 实现两个 ControlDependenceSet 取交集的函数
-ControlDependenceSet operator& (ControlDependenceSet& cds1, ControlDependenceSet& cds2);
+ControlDependenceSet operator& (const ControlDependenceSet& cds1, const ControlDependenceSet& cds2);
 // 设置数据结构 map
 typedef map<NodeID, ControlDependenceSet> ControlDependenceMap;
 // 设置缩写
