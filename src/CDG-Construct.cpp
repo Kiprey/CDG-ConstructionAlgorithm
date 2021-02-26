@@ -5,6 +5,7 @@
 #include "WPA/Andersen.h"
 #include "SABER/LeakChecker.h"
 #include "CDG.h"
+#include "CDmap.h"
 #include "SVF-FE/PAGBuilder.h"
 
 
@@ -86,6 +87,7 @@ void traverseOnVFG(const SVFG* vfg, Value* val){
 }
 
 int main(int argc, char ** argv) {
+    ControlDependenceMap cdm;
     ControlDependenceGraph cdg;
     int arg_num = 0;
     char **arg_value = new char*[argc];

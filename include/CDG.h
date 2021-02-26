@@ -1,3 +1,6 @@
+#ifndef CDG_H
+#define CDG_H
+
 #include "Graphs/GenericGraph.h"
 #include "Graphs/SVFG.h"
 
@@ -14,6 +17,7 @@ typedef ControlDependenceGraph CDG;
 typedef ControlDependenceNode CDGNode;
 typedef ControlDependenceEdge CDGEdge;
 
+// 设置ControlDependenceGraph 的类型
 class ControlDependenceGraph : public GenericGraph<ControlDependenceNode,ControlDependenceEdge>
 {
     // NULL
@@ -45,3 +49,5 @@ public:
 private:
     BasicBlock* _bb;
 };
+
+#endif
