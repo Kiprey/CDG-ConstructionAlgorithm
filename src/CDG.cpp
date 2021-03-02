@@ -110,11 +110,15 @@ void CDG::handleDepenVec(DepenTupleTy* LB,vector <DTNodeTy> &P){
             return;
         else
             ++pi;
-    for(;pi!=P.end();pi++){//遍历路径P，得到CD集，添加节点和边
-//        CDMap.insert();
+    CDSetTy cdSet;
+    for(;pi!=P.end();pi++){//遍历路径P，得到依赖集（CD集），添加节点和边
+        CDGEdge::LabelType l=lable2bool(TF);
         CDGNode* CDnode=addControlCDGNode((*pi)->getBlock());
-        addCDGEdge(nodeA,CDnode,lable2bool(TF));
+        addCDGEdge(nodeA,CDnode,l);
+        CDSetElemTy tmpCDSetElem(CDnode->getId(),l);
+        cdSet.insert(tmpCDSetElem);
     }
+    CDMap.insert({nodeA->getId(),cdSet});
 }
 
 /*!
@@ -166,7 +170,7 @@ inline void CDG::addCDGEdge(CDGNode* s,CDGNode* d,CDGEdge::LabelType l)
     bool added2 = edge->getSrcNode()->addOutgoingEdge(edge);
 }
 
-CDGNode* ControlDependenceGraph::getCDGNode(NodeID id)
+inline CDGNode* ControlDependenceGraph::getCDGNode(NodeID id)
 {
     return getGNode(id);
 }

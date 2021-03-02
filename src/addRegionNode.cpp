@@ -1,7 +1,6 @@
 #include <list>
 
 #include "CDG.h"
-#include "CDmap.h"
 
 // 一个简单的声明
 void PostOrderTraversalPDTNode(CDMapTy cdMap, CDG* cdg, const DomTreeNode* dtn);

@@ -1,4 +1,4 @@
-#include "CDmap.h"
+#include "CDG.h"
 
 ControlDependenceSetElement::ControlDependenceSetElement(NodeID _id, CDGEdge::LabelType ty)
     : _CDG_ID(_id), _label(ty) {}
