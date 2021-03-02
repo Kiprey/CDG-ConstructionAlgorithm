@@ -17,7 +17,9 @@ using namespace std;
 // static llvm::cl::opt<bool> LEAKCHECKER("leak", llvm::cl::init(false),
 //                                        llvm::cl::desc("Memory Leak Detection"));
 
-ControlDependenceGraph* cdGraph = nullptr;
+
+static llvm::cl::opt<std::string> InputFilename(cl::Positional,
+        llvm::cl::desc("<input bitcode>"), llvm::cl::init("-"));
 
 int main(int argc, char ** argv) {
     int arg_num = 0;
