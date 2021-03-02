@@ -6,6 +6,8 @@
 #include "Graphs/GenericGraph.h"
 #include "Graphs/SVFG.h"
 
+#include "CDGEdge.h"
+#include "CDGNode.h"
 
 using namespace SVF;
 using namespace llvm;
@@ -13,19 +15,34 @@ using namespace std;
 
 class ControlDependenceGraph;
 class ControlDependenceNode;
-class ControlDependenceEdge;
 
 typedef ControlDependenceGraph CDG;
-typedef ControlDependenceNode CDGNode;
-typedef ControlDependenceEdge CDGEdge;
 
 // 设置ControlDependenceGraph 的类型
 class ControlDependenceGraph : public GenericGraph<ControlDependenceNode,ControlDependenceEdge>
 {
 public:
+    typedef DomTreeNodeBase<llvm::BasicBlock>* DTNodeTy;
+    typedef struct {
+        DTNodeTy A;
+        DTNodeTy B;
+        DTNodeTy L;
+        NodeID TF;
+    }DepenTupleTy;
+    typedef Set<DepenTupleTy*> DepenSSetTy;
+    typedef vector<DTNodeTy> DepenVecTy;
+
+public:
     ControlDependenceGraph();
+
     void initCDG(SVFFunction *fun );//construct initial CDG
-    inline void addCDGNode(NodeID id, NodeType* node);
+    void findSSet(ICFGNode* entryNode,Set<const ICFGNode*> &visited,DepenSSetTy &setS);
+    void buildinitCDG(DepenSSetTy S);
+    u32_t icfgOutEdgeNum(ICFGNode* iNode);
+    void findPathL2B(DepenSSetTy S,vector <DTNodeTy> &P);
+    void findPathA2B(DTNodeTy A,DepenSSetTy S,vector <DTNodeTy> &P);
+    void handleDepenVec(DepenTupleTy* LB,vector <DTNodeTy> &P);
+
     inline CDGNode* getCDGNode(NodeID id);
     inline bool hasCDGNode(NodeID id);
     inline void removeCDGNode(NodeType* node);
@@ -34,32 +51,11 @@ private:
     // BasicBlock* -> CDG Node ID
     map<BasicBlock*, NodeID> _bb2CDGNodeID;
     PostDominatorTree* PDT = nullptr;
-};
 
-
-typedef GenericEdge<ControlDependenceNode> GenericCDEdgeTy;
-class ControlDependenceEdge : public GenericCDEdgeTy
-{
-public:
-    enum LabelType { T, F, None };
-    ControlDependenceEdge(ControlDependenceNode* s, 
-                       ControlDependenceNode* d, 
-                       LabelType k);
-};
-
-
-typedef GenericNode<ControlDependenceNode, ControlDependenceEdge> GenericCDNodeTy;
-class ControlDependenceNode : public GenericCDNodeTy
-{
-public:
-    enum NodeType { ControlNode, RegionNode };
-    ControlDependenceNode(NodeType ty);
-    void setBasicBlock(BasicBlock* bb);
-    BasicBlock* getBasicBlock();
-
-private:
-    BasicBlock* _bb;
-    static NodeID _nextNodeID;
+    inline void addCDGNode(NodeType* node);
+    inline CDGNode* addControlCDGNode(BasicBlock* nbb);
+    inline CDGNode* addRegionCDGNode();
+    void addCDGEdge(CDGNode *s, CDGNode *d, CDGEdge::LabelType l);
 };
 
 #endif
