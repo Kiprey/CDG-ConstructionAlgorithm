@@ -163,7 +163,7 @@ inline CDGNode* ControlDependenceGraph::addRegionCDGNode()
     return iNode;
 }
 
-inline void CDG::addCDGEdge(CDGNode* s,CDGNode* d,CDGEdge::LabelType l)
+inline void ControlDependenceGraph::addCDGEdge(CDGNode* s,CDGNode* d,CDGEdge::LabelType l)
 {
     CDGEdge* edge=new CDGEdge(s,d,l);
     bool added1 = edge->getDstNode()->addIncomingEdge(edge);
