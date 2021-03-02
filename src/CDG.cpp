@@ -9,7 +9,7 @@ ControlDependenceGraph::ControlDependenceGraph(ICFG* icfg):icfg(icfg)
  * 构建初始的CDG图
  * @param fun
  */
-void ControlDependenceGraph::initCDG(SVFFunction *fun)
+void ControlDependenceGraph::initCDG(const SVFFunction *fun)
 {
     ICFG *icfg;
     PDT->recalculate(*fun->getLLVMFun());

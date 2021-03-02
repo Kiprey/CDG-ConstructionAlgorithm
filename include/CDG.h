@@ -62,7 +62,7 @@ public:
 public:
     ControlDependenceGraph(ICFG* icfg);
 
-    void initCDG(SVFFunction *fun); //construct initial CDG
+    void initCDG(const SVFFunction *fun); //construct initial CDG
     void findSSet(ICFGNode *entryNode, Set<const ICFGNode *> &visited, DepenSSetTy &setS);
     void buildinitCDG(DepenSSetTy S);
     u32_t icfgOutEdgeNum(ICFGNode *iNode);

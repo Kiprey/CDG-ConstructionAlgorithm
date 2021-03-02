@@ -33,12 +33,14 @@ int main(int argc, char ** argv) {
     PAGBuilder builder;
     PAG* pag = builder.build(svfModule);
     /// ICFG
+    const SVFFunction* fun=*(svfModule->begin());
     ICFG* icfg = pag->getICFG();
 
     ControlDependenceGraph* cdGraph = new ControlDependenceGraph(icfg);
-//    cdGraph->initCDG(*(svfModule->begin()));
+    cdGraph->initCDG(fun);
     // print CDG
     // delete node/edge/graph/PDT
+    icfg->dump("wz_icfg");
     return 0;
 }
 
