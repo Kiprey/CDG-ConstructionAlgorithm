@@ -32,8 +32,8 @@ ControlDependenceSet operator& (const ControlDependenceSet& cds1, const ControlD
 // 设置数据结构 map
 typedef map<NodeID, ControlDependenceSet> ControlDependenceMap;
 // 设置缩写
-typedef ControlDependenceMap CDMap;
-typedef ControlDependenceSetElement CDSetElem;
-typedef ControlDependenceSet CDSet; 
+typedef ControlDependenceMap CDMapTy;
+typedef ControlDependenceSetElement CDSetElemTy;
+typedef ControlDependenceSet CDSetTy;
 
 #endif

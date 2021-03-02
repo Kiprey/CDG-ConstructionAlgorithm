@@ -5,7 +5,7 @@
 
 #include "Graphs/GenericGraph.h"
 #include "Graphs/SVFG.h"
-
+#include "CDmap.h"
 #include "CDGEdge.h"
 #include "CDGNode.h"
 
@@ -42,6 +42,10 @@ public:
     void findPathL2B(DepenSSetTy S,vector <DTNodeTy> &P);
     void findPathA2B(DTNodeTy A,DepenSSetTy S,vector <DTNodeTy> &P);
     void handleDepenVec(DepenTupleTy* LB,vector <DTNodeTy> &P);
+    CDGEdge::LabelType lable2bool(NodeID TF);
+
+
+    void addCDGEdge(CDGNode *s, CDGNode *d, CDGEdge::LabelType l);
 
     inline CDGNode* getCDGNode(NodeID id);
     inline bool hasCDGNode(NodeID id);
@@ -51,11 +55,10 @@ private:
     // BasicBlock* -> CDG Node ID
     map<BasicBlock*, NodeID> _bb2CDGNodeID;
     PostDominatorTree* PDT = nullptr;
-
+    CDMapTy CDMap;
     inline void addCDGNode(NodeType* node);
     inline CDGNode* addControlCDGNode(BasicBlock* nbb);
     inline CDGNode* addRegionCDGNode();
-    void addCDGEdge(CDGNode *s, CDGNode *d, CDGEdge::LabelType l);
 };
 
 #endif

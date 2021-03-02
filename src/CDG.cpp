@@ -2,9 +2,13 @@
 
 ControlDependenceGraph::ControlDependenceGraph()
 {
-    /// @todo
+    /// @todo 构建PDT
 }
 
+/*!
+ * 构建初始的CDG图
+ * @param fun
+ */
 void ControlDependenceGraph::initCDG(SVFFunction *fun )
 {
     ICFG* icfg;
@@ -18,7 +22,12 @@ void ControlDependenceGraph::initCDG(SVFFunction *fun )
     findSSet(icfg->getFunEntryBlockNode(fun),visited,setS);
     buildinitCDG(setS);
 }
-
+/*!
+ * 遍历CFG的所有分支节点，找到S集合存入set'S中
+ * @param iNode CFG节点
+ * @param visited 记录已访问的CFG节点
+ * @param setS S集合（A,B,L,TF）
+ */
 void CDG::findSSet(ICFGNode* iNode,Set<const ICFGNode*> &visited,DepenSSetTy &setS){
     if (visited.find(iNode) == visited.end())
         visited.insert(iNode);
@@ -54,6 +63,20 @@ void CDG::findSSet(ICFGNode* iNode,Set<const ICFGNode*> &visited,DepenSSetTy &se
     }
 }
 
+/*!
+ * 根据给出的S集合找到后支配树上的路径，也就是A的CD集
+ * @param S S集合
+ */
+void CDG::buildinitCDG(DepenSSetTy S){
+    vector <DTNodeTy> vecP;
+    findPathL2B(S,vecP);
+}
+
+/*!
+ * 先根遍历后支配树，记录S集合中从L到B的路径
+ * @param S S集合
+ * @param P 记录路径
+ */
 void CDG::findPathL2B(const DepenSSetTy S,vector <DTNodeTy> &P){
     findPathA2B(PDT->getRootNode(),S,P);
 }
@@ -72,10 +95,11 @@ void CDG::findPathA2B(DTNodeTy A,DepenSSetTy S,vector <DTNodeTy> &P){
     P.pop_back();
 }
 
-void CDG::buildinitCDG(DepenSSetTy S){
-    vector <DTNodeTy> vecP;
-    findPathL2B(S,vecP);
-}
+/*!
+ * 处理路径P生成CD集
+ * @param LB
+ * @param P
+ */
 void CDG::handleDepenVec(DepenTupleTy* LB,vector <DTNodeTy> &P){
     DTNodeTy L=LB->L,B=LB->B,A=LB->A;
     NodeID TF=LB->TF;
@@ -86,18 +110,26 @@ void CDG::handleDepenVec(DepenTupleTy* LB,vector <DTNodeTy> &P){
             return;
         else
             ++pi;
-    for(;pi!=P.end();pi++){
+    for(;pi!=P.end();pi++){//遍历路径P，得到CD集，添加节点和边
+//        CDMap.insert();
         CDGNode* CDnode=addControlCDGNode((*pi)->getBlock());
-        switch (TF) {
-            case 0:
-                addCDGEdge(nodeA,CDnode,CDGEdge::LabelType::T);
-                break;
-            case 1:
-                addCDGEdge(nodeA,CDnode, CDGEdge::LabelType::F);
-                break;
-            default:
-                addCDGEdge(nodeA,CDnode,CDGEdge::LabelType::None);
-        }
+        addCDGEdge(nodeA,CDnode,lable2bool(TF));
+    }
+}
+
+/*!
+ * 将u32的lable类型转为CDGEdge::LableType类型
+ * @param TF
+ * @return
+ */
+CDGEdge::LabelType CDG::lable2bool(NodeID TF){
+    switch (TF) {
+        case 0:
+            return CDGEdge::LabelType::F;
+        case 1:
+            return CDGEdge::LabelType::T;
+        default:
+            return CDGEdge::LabelType::None;
     }
 }
 
