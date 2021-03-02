@@ -15,11 +15,10 @@ void addRegionNodeToCDG(CDG* cdg, const PostDominatorTree* PDT)
     CDMapTy cdMap;
     // 1. 为每个存在控制依赖关系的结点，生成一个 Region Node。并使该结点依赖ReginNode，该ReginNode 依赖原先的CD结点。
 
-    //      a. 首先单独获取图中的每一个 **存在入边** 的节点（因为在遍历图时，不能修改图，否则会导致迭代器失效）
+    //      a. 首先单独获取图中的每一个节点（因为在遍历图时，不能修改图，否则会导致迭代器失效）
     list<CDGNode*> nodeWorklists;
     for (CDG::const_iterator nodeIt = cdg->begin(), nodeEit = cdg->end(); nodeIt != nodeEit; nodeIt++)
-        if(nodeIt->second->hasIncomingEdge())
-            nodeWorklists.push_back(nodeIt->second);
+        nodeWorklists.push_back(nodeIt->second);
 
     //      b. 对每个存在入边的节点， 建立一个新的 RegionNode，并将其插入至图中，同时加入CDMap里
     for(auto iter = nodeWorklists.begin(); iter != nodeWorklists.end(); iter++)
@@ -39,14 +38,18 @@ void addRegionNodeToCDG(CDG* cdg, const PostDominatorTree* PDT)
 
         CDGNode* dstNode = *iter;
 
+        // 如果当前节点不存在入边，则直接跳过
+        if(!(dstNode->hasIncomingEdge()))
+            continue;
+
         // 新建 Region Node，并将其加入图中
         CDGNode* regionNode = new CDGNode(CDGNode::NodeType::RegionNode);
         cdg->addGNode(regionNode->getId(), regionNode);
         
         // 建立 node <-- none -- RegionNode
         CDGEdge* region2dst = new CDGEdge(regionNode, dstNode, CDGEdge::LabelType::None); 
-        dstNode->addIncomingEdge(region2dst);
         regionNode->addOutgoingEdge(region2dst);
+        dstNode->addIncomingEdge(region2dst);
 
         // 遍历当前节点所有入边
         for (CDGNode::const_iterator it = dstNode->InEdgeBegin(), eit = dstNode->InEdgeEnd(); it != eit; ++it)
@@ -87,7 +90,56 @@ void addRegionNodeToCDG(CDG* cdg, const PostDominatorTree* PDT)
      *     使图中具有控制依赖前驱结点 P 且标签L的每个节点都具有该区域节点 R。 
      *     最后，使R成为具有相同标签的P的单个控制依赖关系的后继结点。 
      */
-    
+    // 遍历所有的节点
+    for(auto iter = nodeWorklists.begin(); iter != nodeWorklists.end(); iter++)
+    {
+        // 获取当前节点出边的labelType
+        CDGNode* node = *iter;
+        // 这里声明数组，方便代码编写
+        list<CDGEdge*> edgeTF[2];
+        for(auto edgeIter = node->OutEdgeBegin(); edgeIter != node->OutEdgeEnd(); edgeIter++)
+        {
+            CDGEdge* edge = *edgeIter;
+            switch(edge->getEdgeKind())
+            {
+            case CDGEdge::LabelType::T: edgeTF[0].push_back(edge); break;
+            case CDGEdge::LabelType::F: edgeTF[1].push_back(edge); break;
+            }
+        }
+        // 开始处理 T F
+        for(size_t i = 0; i < 2; i++)
+        {
+            list<CDGEdge*>& edges = edgeTF[i];
+            // 如果 T/F 类型只有一条边，或者没有边，则不进行处理
+            if(edges.size() <= 1)
+                continue;
+            // 如果 T/F 有多条出边，则新建一个 RegionNode，删除原先的边，并建立新边
+            //      1. 新建 Region Node，并将其加入图中
+            CDGNode* regionNode = new CDGNode(CDGNode::NodeType::RegionNode);
+            cdg->addGNode(regionNode->getId(), regionNode);
+            
+            // 建立 RegionNode <-- T/F -- node
+            CDGEdge* node2regionNode = new CDGEdge(node, regionNode, 
+                (i == 0 ? CDGEdge::LabelType::T : CDGEdge::LabelType::F)); 
+            node->addOutgoingEdge(node2regionNode);
+            regionNode->addIncomingEdge(node2regionNode);
+            
+            //      2. 遍历某一类型的所有边，将其删除并建立新边
+            for(auto edgeIter = edges.begin(); edgeIter!= edges.end(); edgeIter++)
+            {
+                CDGEdge* edge = *edgeIter;
+                CDGNode* anotherRegionNode = edge->getDstNode();
+                // 先加边 anotherRegionNode <-- none -- regionNode 的边
+                CDGEdge* region2anotherRegion = new CDGEdge(regionNode, anotherRegionNode, (CDGEdge::LabelType)edge->getEdgeKind()); 
+                regionNode->addOutgoingEdge(region2anotherRegion);
+                anotherRegionNode->addIncomingEdge(region2anotherRegion);
+                // 再删除 anotherRegionNode <-- edge -- node 的边, 将 edge 从原先的图中删除
+                node->removeOutgoingEdge(edge);
+                anotherRegionNode->removeIncomingEdge(edge);
+                delete edge;
+            }
+        }
+    }
 }
 
 /**
