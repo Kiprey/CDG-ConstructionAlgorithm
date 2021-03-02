@@ -3,15 +3,15 @@ using namespace std;
 
 void guess(int num)
 {
-    for(;;)
+    for (;;)
     {
         int n;
         cout << "Please input your guess num: ";
         cin >> n;
 
-        if(n > num)
+        if (n > num)
             cout << "The guess number is bigger than my number!\n";
-        else if(n < num)
+        else if (n < num)
             cout << "The guess number is smaller than my number!\n";
         else
         {

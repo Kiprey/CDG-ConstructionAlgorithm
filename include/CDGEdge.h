@@ -16,12 +16,15 @@ typedef GenericEdge<ControlDependenceNode> GenericCDEdgeTy;
 class ControlDependenceEdge : public GenericCDEdgeTy
 {
 public:
-    enum LabelType { T, F, None };
-    ControlDependenceEdge(ControlDependenceNode* s,
-                          ControlDependenceNode* d,
+    enum LabelType
+    {
+        T,
+        F,
+        None
+    };
+    ControlDependenceEdge(ControlDependenceNode *s,
+                          ControlDependenceNode *d,
                           LabelType k);
 };
-
-
 
 #endif //CDG_CONSTRUCT_CDGEDGE_H
