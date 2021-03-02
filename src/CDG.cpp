@@ -21,6 +21,7 @@ void ControlDependenceGraph::initCDG(SVFFunction *fun)
     DepenSSetTy setS;
     findSSet(icfg->getFunEntryBlockNode(fun), visited, setS);
     buildinitCDG(setS);
+    addRegionNodeToCDG();
 }
 /*!
  * 遍历CFG的所有分支节点，找到S集合存入set'S中
