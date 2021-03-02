@@ -72,13 +72,22 @@ void addRegionNodeToCDG(CDG* cdg, const PostDominatorTree* PDT)
         }
     }
 
-    // 3. 后序遍历 后向支配树，计算当前结点 N 的 CD 与 后支配树中 N 的每个直接子结点的CD 的交集 INT。如果 INT 与 CD 相等，则将子节点中对应的控制依赖用 R 来代替。
-    //    如果存在子节点的控制依赖都位于 INT 中，即被 INT 包含，则删除 R 中对应的控制依赖，并用对应 子节点的控制依赖来代替。
+    /* 3. 后序遍历 后向支配树，计算当前结点 N 的 CD 与 后支配树中 N 的每个直接子结点的CD 的交集 INT。
+          判断如果R的控制依赖关系的前驱结点集合，是某个其他节点的控制依赖关系的前驱结点集合的子集，
+          则使该节点直接依赖R来进行控制，以代替CD中的节点
+    */
     /// @note geRoot 对于 postDT 返回nullptr, iff PDT 有多个 root 节点
     BasicBlock* root = PDT->getRoot();
     assert(root);
     auto pdtRootNode = PDT->getNode(root);
     PostOrderTraversalPDTNode(cdMap, cdg, pdtRootNode);
+    
+    /**
+     *  4. 对于具有多个控制依赖后继结点，并且具有相同关联标签L的任何谓词节点P，创建一个区域节点R。
+     *     使图中具有控制依赖前驱结点 P 且标签L的每个节点都具有该区域节点 R。 
+     *     最后，使R成为具有相同标签的P的单个控制依赖关系的后继结点。 
+     */
+    
 }
 
 /**
@@ -123,7 +132,7 @@ void PostOrderTraversalPDTNode(CDMapTy cdMap, CDG* cdg, const DomTreeNode* dtn)
         assert(childInEdgeSet.size() == 1);
         CDGNode* childRegionNode = (*(childInEdgeSet.begin()))->getSrcNode();
             
-        //  b. 如果 INT 与 CD 相等，则将子节点中对应的控制依赖用 R 来代替。
+        //  b. 如果 INT 与 CD 相等, 即 ParentCD \in ChildCD，则将子节点中对应的控制依赖用 R 来代替。
         if(cd == INT)
         {
             // 获取交集 INT 中对应 CD 的 edge
@@ -137,9 +146,9 @@ void PostOrderTraversalPDTNode(CDMapTy cdMap, CDG* cdg, const DomTreeNode* dtn)
                 // 去 INT 中查找是否存在当前依赖对象，如果存在：
                 if(INT.find(cdElem) != INT.end())
                 {
-                    // 从 srcNode 和 currNode 中删除该边
+                    // 从 srcNode 和 childRegionNode 中删除该边
                     inEdge->getSrcNode()->removeOutgoingEdge(inEdge);
-                    currNode->removeIncomingEdge(inEdge);
+                    inEdge->getDstNode()->removeIncomingEdge(inEdge);
                     delete inEdge;
                 }
             }
@@ -149,15 +158,31 @@ void PostOrderTraversalPDTNode(CDMapTy cdMap, CDG* cdg, const DomTreeNode* dtn)
             childRegionNode->addIncomingEdge(newEdge);
         }
 
-        //  c. 如果子节点的控制依赖都是 INT中，即被 INT 包含，则删除 R 中对应的控制依赖，并用对应 子节点的控制依赖 来代替。
-        //  此处 childCDS 可能 cd 中的子集，即与交集 INT 相等
+        //  c. 如果子节点中所有的控制依赖项 与 INT 相等，即 ChildCD \in ParentCD, 
+        //     则删除 R 中对应的控制依赖，并用 子节点的控制依赖来代替。
         else if(childCDS == INT)
         {
-            /// @todo
+            // 获取交集 INT 中对应 CD 的 edge
+            // 遍历当前节点的入边，查找满足 INT 的对应 src 节点以及 edge label
+            // 由于交集可能有1个以上的节点，因此为了保守起见，循环遍历删除 curr region node对应的 edge
+            for(auto edgeIter = currRegionNode->InEdgeBegin(); edgeIter != currRegionNode->InEdgeEnd(); edgeIter++)
+            {
+                CDGEdge * inEdge = *edgeIter;
+                // 构造一个依赖对象
+                CDSetElemTy cdElem(inEdge->getSrcID(), (CDGEdge::LabelType)inEdge->getEdgeKind());
+                // 去 INT 中查找是否存在当前依赖对象，如果存在：
+                if(INT.find(cdElem) != INT.end())
+                {
+                    // 从 srcNode 和 currNode 中删除该边
+                    inEdge->getSrcNode()->removeOutgoingEdge(inEdge);
+                    inEdge->getDstNode()->removeIncomingEdge(inEdge);
+                    delete inEdge;
+                }
+            }
+            // 最后从当前 childRegionNode 那边连过来一条线到 currRegionNode
+            CDGEdge* newEdge = new CDGEdge(childRegionNode, currRegionNode, CDGEdge::LabelType::None); 
+            childRegionNode->addOutgoingEdge(newEdge);
+            currRegionNode->addIncomingEdge(newEdge);
         }
-        else 
-            // 剩下两种情况不予考虑，分别是 1. CD 被 childCDS 包含;    2. CD 和 childCDS 不完全相交
-            // 如果出现上面这两种情况，大概率出bug，或者原先算法没有理清，具体实现没有到位，仍然需要再理解理解
-            assert(0 && "PostOrderTraversalPDTNode 中没有考虑到当前节点的 CDSet 和 子节点的 CDSet 其他可能的情况");
     }
 }
