@@ -110,15 +110,22 @@ void CDG::handleDepenVec(DepenTupleTy* LB,vector <DTNodeTy> &P){
             return;
         else
             ++pi;
-    CDSetTy cdSet;
-    for(;pi!=P.end();pi++){//遍历路径P，得到依赖集（CD集），添加节点和边
-        CDGEdge::LabelType l=lable2bool(TF);
+    CDGEdge::LabelType l=lable2bool(TF);
+    CDSetElemTy tmpCDSetElem(nodeA->getId(),l);
+    for(;pi!=P.end();pi++){//遍历路径P，添加节点和边
         CDGNode* CDnode=addControlCDGNode((*pi)->getBlock());
         addCDGEdge(nodeA,CDnode,l);
-        CDSetElemTy tmpCDSetElem(CDnode->getId(),l);
-        cdSet.insert(tmpCDSetElem);
+        //得到依赖集（CD集）
+        auto iter=CDMap.find(nodeA->getId());
+        if(iter==CDMap.end()) {//没找到就就，新一个集合
+            CDSetTy tmpCDSet;
+            tmpCDSet.insert(tmpCDSetElem);
+            CDMap.insert({nodeA->getId(),tmpCDSet});
+        }
+        else{//添加被依赖节点A到依赖的依赖集里
+            (*iter).second.insert(tmpCDSetElem);
+        }
     }
-    CDMap.insert({nodeA->getId(),cdSet});
 }
 
 /*!
