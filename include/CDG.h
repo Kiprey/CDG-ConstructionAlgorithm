@@ -84,6 +84,8 @@ private:
     inline void addCDGNode(NodeType* node);
     inline CDGNode* addControlCDGNode(BasicBlock* nbb);
     inline CDGNode* addRegionCDGNode();
+    void PostOrderTraversalPDTNode(const DomTreeNode* dtn);
+    void addRegionNodeToCDG();
 };
 
 
