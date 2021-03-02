@@ -2,6 +2,7 @@
 
 ControlDependenceGraph::ControlDependenceGraph(ICFG* icfg):icfg(icfg)
 {
+    PDT=new llvm::PostDominatorTree();
     /// @todo 构建PDT
 }
 
@@ -11,7 +12,6 @@ ControlDependenceGraph::ControlDependenceGraph(ICFG* icfg):icfg(icfg)
  */
 void ControlDependenceGraph::initCDG(const SVFFunction *fun)
 {
-    ICFG *icfg;
     PDT->recalculate(*fun->getLLVMFun());
 
     const BasicBlock *exbb = SVFUtil::getFunExitBB(fun->getLLVMFun());

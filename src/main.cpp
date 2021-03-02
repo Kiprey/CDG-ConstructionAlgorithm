@@ -35,14 +35,14 @@ int main(int argc, char ** argv) {
     PAGBuilder builder;
     PAG* pag = builder.build(svfModule);
     /// ICFG
-    const SVFFunction* fun=*(svfModule->begin());
+    auto iter=svfModule->begin();
+    const SVFFunction* fun=*(++iter);
     ICFG* icfg = pag->getICFG();
-
     ControlDependenceGraph* cdGraph = new ControlDependenceGraph(icfg);
     cdGraph->initCDG(fun);
     // print CDG
     // delete node/edge/graph/PDT
-    icfg->dump("wz_icfg");
+//    icfg->dump("wz_icfg");
     return 0;
 }
 

@@ -81,7 +81,7 @@ public:
 private:
     // BasicBlock* -> CDG Node ID
     map<BasicBlock *, NodeID> _bb2CDGNodeID;
-    PostDominatorTree *PDT = nullptr;
+    PostDominatorTree *PDT ;
     CDMapTy CDMap;
     ICFG* icfg;
     inline void addCDGNode(NodeType *node);
