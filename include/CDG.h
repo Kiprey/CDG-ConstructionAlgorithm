@@ -60,7 +60,7 @@ public:
     typedef vector<DTNodeTy> DepenVecTy;
 
 public:
-    ControlDependenceGraph();
+    ControlDependenceGraph(ICFG* icfg);
 
     void initCDG(SVFFunction *fun); //construct initial CDG
     void findSSet(ICFGNode *entryNode, Set<const ICFGNode *> &visited, DepenSSetTy &setS);
@@ -83,6 +83,7 @@ private:
     map<BasicBlock *, NodeID> _bb2CDGNodeID;
     PostDominatorTree *PDT = nullptr;
     CDMapTy CDMap;
+    ICFG* icfg;
     inline void addCDGNode(NodeType *node);
     inline CDGNode *addControlCDGNode(BasicBlock *nbb);
     inline CDGNode *addRegionCDGNode();

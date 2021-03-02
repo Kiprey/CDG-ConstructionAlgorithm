@@ -1,6 +1,6 @@
 #include "CDG.h"
 
-ControlDependenceGraph::ControlDependenceGraph()
+ControlDependenceGraph::ControlDependenceGraph(ICFG* icfg):icfg(icfg)
 {
     /// @todo 构建PDT
 }
@@ -116,11 +116,12 @@ void CDG::handleDepenVec(DepenTupleTy *LB, vector<DTNodeTy> &P)
     NodeID TF = LB->TF;
     CDGNode *nodeA = addControlCDGNode(A->getBlock()); //all node below dependent on A
     auto pi = std::find(P.begin(), P.end(), L);        //find L
-    if (PDT->properlyDominates(L, B))                  //if A is the ancestor of B,then A==L the path contant L,otherwise dont contain
+    if (PDT->properlyDominates(L, B)) {                  //if A is the ancestor of B,then A==L the path contant L,otherwise dont contain
         if (pi == P.end())
             return;
         else
             ++pi;
+    }
     CDGEdge::LabelType l = lable2bool(TF);
     CDSetElemTy tmpCDSetElem(nodeA->getId(), l);
     for (; pi != P.end(); pi++)
@@ -233,7 +234,7 @@ void ControlDependenceGraph::addRegionNodeToCDG()
     //      b. 对每个存在入边的节点， 建立一个新的 RegionNode，并将其插入至图中，同时加入CDMap里
     for (auto iter = nodeWorklists.begin(); iter != nodeWorklists.end(); iter++)
     {
-        /** 
+        /**
         @brief
             先将每一个带有入边的节点，其 dstNode <-- cde(T/F/None） -- srcNode
             转换成
@@ -242,7 +243,7 @@ void ControlDependenceGraph::addRegionNodeToCDG()
                     dstNode <-- none -- RegionNode                       srcNode
             最后再遍历所有入边，转换成
                     dstNode <-- none -- RegionNode <-- cde(T/F/None） -- srcNode
-        @warning 
+        @warning
             务必小心多个节点指向同一节点这种情况
         */
 
@@ -297,8 +298,8 @@ void ControlDependenceGraph::addRegionNodeToCDG()
 
     /**
      *  4. 对于具有多个控制依赖后继结点，并且具有相同关联标签L的任何谓词节点P，创建一个区域节点R。
-     *     使图中具有控制依赖前驱结点 P 且标签L的每个节点都具有该区域节点 R。 
-     *     最后，使R成为具有相同标签的P的单个控制依赖关系的后继结点。 
+     *     使图中具有控制依赖前驱结点 P 且标签L的每个节点都具有该区域节点 R。
+     *     最后，使R成为具有相同标签的P的单个控制依赖关系的后继结点。
      */
     // 遍历所有的节点
     for (auto iter = nodeWorklists.begin(); iter != nodeWorklists.end(); iter++)
