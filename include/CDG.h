@@ -65,7 +65,7 @@ public:
     void initCDG(const SVFFunction *fun); //construct initial CDG
     void findSSet(ICFGNode *entryNode, Set<const ICFGNode *> &visited, DepenSSetTy &setS);
     void buildinitCDG(DepenSSetTy S);
-    u32_t icfgOutEdgeNum(ICFGNode *iNode);
+    u32_t icfgOutIntraEdgeNum(ICFGNode *iNode);
     void findPathL2B(DepenSSetTy S, vector<DTNodeTy> &P);
     void findPathA2B(DTNodeTy A, DepenSSetTy S, vector<DTNodeTy> &P);
     void handleDepenVec(DepenTupleTy *LB, vector<DTNodeTy> &P);

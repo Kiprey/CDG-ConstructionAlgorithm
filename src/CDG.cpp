@@ -19,7 +19,8 @@ void ControlDependenceGraph::initCDG(const SVFFunction *fun)
 
     Set<const ICFGNode *> visited;
     DepenSSetTy setS;
-    findSSet(icfg->getFunEntryBlockNode(fun), visited, setS);
+    ICFGNode* node=icfg->getICFGNode(11);
+    findSSet(node, visited, setS);//DEBUG  icfg->getFunEntryBlockNode(fun)
     buildinitCDG(setS);
     addRegionNodeToCDG();
 }
@@ -31,13 +32,14 @@ void ControlDependenceGraph::initCDG(const SVFFunction *fun)
  */
 void CDG::findSSet(ICFGNode *iNode, Set<const ICFGNode *> &visited, DepenSSetTy &setS)
 {
+    outs()<<"node_id::"<<iNode->getId()<<"node_outedge_num:"<<icfgOutIntraEdgeNum(iNode) <<"\n";//DEBUG
     if (visited.find(iNode) == visited.end())
         visited.insert(iNode);
     else
         return;
-    if (SVFUtil::dyn_cast<FunExitBlockNode>(iNode))
+    if (SVFUtil::dyn_cast<FunExitBlockNode>(iNode)&& !SVFUtil::dyn_cast<IntraBlockNode>(iNode))
         return;
-    if (icfgOutEdgeNum(iNode) != 2)
+    if (icfgOutIntraEdgeNum(iNode) != 2)
     {
         for (ICFGEdge *edge : iNode->getOutEdges())
             findSSet(edge->getDstNode(), visited, setS);
@@ -45,18 +47,16 @@ void CDG::findSSet(ICFGNode *iNode, Set<const ICFGNode *> &visited, DepenSSetTy 
     }
     //handle edges with condition to get S
     //traverse posdomtree to get P
-    for (ICFGNode::const_iterator it = iNode->OutEdgeBegin(), eit =
-                                                                  iNode->OutEdgeEnd();
-         it != eit; ++it)
+    for (ICFGEdge* edge : iNode->getOutEdges())
     {
-        IntraCFGEdge *edge = SVFUtil::dyn_cast<IntraCFGEdge>(*it);
-        if (edge)
+        IntraCFGEdge *intraEdge = SVFUtil::dyn_cast<IntraCFGEdge>(edge);
+        if (intraEdge== nullptr)
             continue;
-        findSSet(edge->getDstNode(), visited, setS);
-        NodeID TF = edge->getBranchCondtion().second;
-        const llvm::BasicBlock *bbA = edge->getSrcNode()->getBB();
-        const llvm::BasicBlock *bbB = edge->getSrcNode()->getBB();
-        //判断改边的两个点是否存在支配关系，存在则存入S集合
+        findSSet(intraEdge->getDstNode(), visited, setS);
+        NodeID TF = intraEdge->getBranchCondtion().second;
+        const llvm::BasicBlock *bbA = intraEdge->getSrcNode()->getBB();
+        const llvm::BasicBlock *bbB = intraEdge->getSrcNode()->getBB();
+        //判断该边的两个点是否存在支配关系，存在则存入S集合
         DTNodeTy dnA = PDT->getNode(bbA);
         DTNodeTy dnB = PDT->getNode(bbB);
         if (!PDT->properlyDominates(dnA, dnB))
@@ -161,13 +161,17 @@ CDGEdge::LabelType CDG::lable2bool(NodeID TF)
     }
 }
 
-u32_t CDG::icfgOutEdgeNum(ICFGNode *iNode)
+/*!
+ * 找到ICFG节点的过程内的出边数量（不计算call和ret边）
+ * @param iNode ICFG节点
+ * @return
+ */
+u32_t CDG::icfgOutIntraEdgeNum(ICFGNode *iNode)
 {
     u32_t n = 0;
-    for (ICFGNode::const_iterator it = iNode->OutEdgeBegin(), eit =
-                                                                  iNode->OutEdgeEnd();
-         it != eit; ++it)
-        ++n;
+    for (ICFGEdge* edge : iNode->getOutEdges())
+        if(SVFUtil::dyn_cast<IntraCFGEdge>(edge))
+            ++n;
     return n;
 }
 
