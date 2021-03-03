@@ -99,7 +99,7 @@ void CDG::findPathA2B(DTNodeTy A, DepenSSetTy S, vector<DTNodeTy> &P)
     {
         if (A == (*it)->B)
         {
-            outs()<<"Find B!!"<<"\t";//DEBUG
+            outs()<<"Find B!!"<<"\n";//DEBUG
             handleDepenVec(*it, P);
             S.erase(it);
             break;
@@ -468,7 +468,7 @@ void ControlDependenceGraph::PostOrderTraversalPDTNode(const DomTreeNode *dtn)
 
 
 void CDG::dump(const std::string& file, bool simple){
-    GraphPrinter::WriteGraphToFile(outs(), file, this, simple);
+//    GraphPrinter::WriteGraphToFile(outs(), file, this, simple);
 };
 
 void CDG::showSetS(DepenSSetTy S,llvm::raw_ostream &O){
