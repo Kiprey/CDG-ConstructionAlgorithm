@@ -19,11 +19,11 @@ void ControlDependenceGraph::initCDG(const SVFFunction *fun)
 
     Set<const ICFGNode *> visited;
     DepenSSetTy setS;
-    findSSet(icfg->getFunEntryBlockNode(fun), visited, setS);
+    findSSet(icfg->getFunEntryBlockNode(fun), visited, setS);//1.找到S集合
     showSetS(setS,outs());
-    buildinitCDG(setS);
+    buildinitCDG(setS);//2.根据S集合计算支配关系，同时添加节点和边构建初始的CDG
     showCDMap(CDMap,outs());
-    addRegionNodeToCDG();
+    addRegionNodeToCDG();//3.添加RegionNode
 }
 /*!
  * 遍历CFG的所有分支节点，找到S集合存入set'S中
@@ -190,15 +190,15 @@ inline void ControlDependenceGraph::addCDGNode(CDGNode *node)
     _bb2CDGNodeID.insert(make_pair(node->getBasicBlock(), node->getId()));
     addGNode(node->getId(), node);
 }
-inline CDGNode *ControlDependenceGraph::addControlCDGNode(BasicBlock *nbb)
+inline ControlCDGNode *ControlDependenceGraph::addControlCDGNode(BasicBlock *nbb)
 {
-    CDGNode *iNode = new ControlCDGNode(totalCDGNode++,nbb);
+    ControlCDGNode *iNode = new ControlCDGNode(totalCDGNode++,nbb);
     addCDGNode(iNode);
     return iNode;
 }
-inline CDGNode *ControlDependenceGraph::addRegionCDGNode(BasicBlock *nbb)
+inline RegionCDGNode *ControlDependenceGraph::addRegionCDGNode()
 {
-    CDGNode *iNode = new RegionCDGNode(totalCDGNode++,nbb);
+    RegionCDGNode *iNode = new RegionCDGNode(totalCDGNode++);
     addCDGNode(iNode);
     return iNode;
 }
@@ -268,8 +268,7 @@ void ControlDependenceGraph::addRegionNodeToCDG()
             continue;
 
         // 新建 Region Node，并将其加入图中
-        CDGNode *regionNode = addRegionCDGNode(nullptr);
-        this->addGNode(regionNode->getId(), regionNode);
+        CDGNode *regionNode = addRegionCDGNode();
 
         // 建立 node <-- none -- RegionNode
         CDGEdge *region2dst = new CDGEdge(regionNode, dstNode, CDGEdge::LabelType::None);
@@ -293,6 +292,8 @@ void ControlDependenceGraph::addRegionNodeToCDG()
 
             // 2. 在修改边指向 RegionNode 的过程中，可以顺便使用 Map 将 RegionNodeID映射到对应的控制依赖集。
             CDSetElemTy elem(srcNode->getId(), (CDGEdge::LabelType)src2region->getEdgeKind());
+            /// @question 这里ControlNode的CD集已经有了，不需要重复添加，是否应该删除原本的CD集，将CD集中的项替换为{RNodeID,None},
+            /// 再添加一个R节点的CD集
             // map 的 operator[] 在找不到 Set 时将自动创建，因此不必手动判断是否存在
             // 控制依赖集合映射： dstNodeID -> { { srcNodeID1, edgeLable1 }， { ... }， { ... } }
             //                 即 NodeID* -> CDSetTy
@@ -344,7 +345,7 @@ void ControlDependenceGraph::addRegionNodeToCDG()
                 continue;
             // 如果 T/F 有多条出边，则新建一个 RegionNode，删除原先的边，并建立新边
             //      1. 新建 Region Node，并将其加入图中
-            CDGNode *regionNode = addRegionCDGNode(nullptr);
+            CDGNode *regionNode = addRegionCDGNode();
             this->addGNode(regionNode->getId(), regionNode);
 
             // 建立 RegionNode <-- T/F -- node
@@ -520,7 +521,7 @@ ControlCDGNode::ControlCDGNode(NodeID id,llvm::BasicBlock* bb)
         : CDGNode(id,CDGNode::NodeType::ControlNode) {
     setBasicBlock(bb);
 };
-RegionCDGNode::RegionCDGNode(NodeID id,llvm::BasicBlock* bb)
+RegionCDGNode::RegionCDGNode(NodeID id)
         : CDGNode(id,CDGNode::NodeType::RegionNode) {
-    setBasicBlock(bb);
+    setBasicBlock(nullptr);
 };

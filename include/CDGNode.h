@@ -36,7 +36,7 @@ private:
 class RegionCDGNode : public CDGNode
 {
 public:
-    RegionCDGNode(NodeID id,BasicBlock *bb);
+    RegionCDGNode(NodeID id);
 
 private:
 };

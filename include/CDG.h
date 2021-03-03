@@ -91,8 +91,8 @@ private:
     CDMapTy CDMap;
     ICFG* icfg;
     inline void addCDGNode(NodeType *node);
-    inline CDGNode *addControlCDGNode(BasicBlock *nbb);
-    inline CDGNode *addRegionCDGNode(BasicBlock *nbb);
+    inline ControlCDGNode *addControlCDGNode(BasicBlock *nbb);
+    inline RegionCDGNode *addRegionCDGNode();
     void PostOrderTraversalPDTNode(const DomTreeNode *dtn);
     void addRegionNodeToCDG();
 };
