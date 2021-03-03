@@ -1,6 +1,6 @@
 #include "CDG.h"
 
-ControlDependenceGraph::ControlDependenceGraph(ICFG* icfg):icfg(icfg)
+ControlDependenceGraph::ControlDependenceGraph(ICFG* icfg):icfg(icfg),totalCDGNode(0)
 {
     PDT=new llvm::PostDominatorTree();
     /// @todo 构建PDT
@@ -14,14 +14,15 @@ void ControlDependenceGraph::initCDG(const SVFFunction *fun)
 {
     PDT->recalculate(*fun->getLLVMFun());
     PDT->print(outs());
-
     const BasicBlock *exbb = SVFUtil::getFunExitBB(fun->getLLVMFun());
     const BasicBlock *enbb = &(fun->getLLVMFun()->front());
 
     Set<const ICFGNode *> visited;
     DepenSSetTy setS;
-    findSSet(icfg->getFunEntryBlockNode(fun), visited, setS);//DEBUG  icfg->getFunEntryBlockNode(fun)
+    findSSet(icfg->getFunEntryBlockNode(fun), visited, setS);
+    showSetS(setS,outs());
     buildinitCDG(setS);
+    showCDMap(CDMap,outs());
     addRegionNodeToCDG();
 }
 /*!
@@ -32,7 +33,7 @@ void ControlDependenceGraph::initCDG(const SVFFunction *fun)
  */
 void CDG::findSSet(ICFGNode *iNode, Set<const ICFGNode *> &visited, DepenSSetTy &setS)
 {
-    outs()<<"node_id::"<<iNode->getId()<<"node_outedge_num:"<<icfgOutIntraEdgeNum(iNode) <<"\n";//DEBUG
+//    outs()<<"node_id::"<<iNode->getId()<<"node_outedge_num:"<<icfgOutIntraEdgeNum(iNode) <<"\n";//DEBUG
     if (visited.find(iNode) == visited.end())
         visited.insert(iNode);
     else
@@ -55,11 +56,11 @@ void CDG::findSSet(ICFGNode *iNode, Set<const ICFGNode *> &visited, DepenSSetTy 
         findSSet(intraEdge->getDstNode(), visited, setS);
         NodeID TF = intraEdge->getBranchCondtion().second;
         const llvm::BasicBlock *bbA = intraEdge->getSrcNode()->getBB();
-        const llvm::BasicBlock *bbB = intraEdge->getSrcNode()->getBB();
+        const llvm::BasicBlock *bbB = intraEdge->getDstNode()->getBB();
         //判断该边的两个点是否存在支配关系，存在则存入S集合
         DTNodeTy dnA = PDT->getNode(bbA);
         DTNodeTy dnB = PDT->getNode(bbB);
-        if (!PDT->properlyDominates(dnA, dnB))
+        if (!PDT->properlyDominates(dnB, dnA))
         { //Return true iff B dominates A and A != B.
             DTNodeTy dnL = PDT->getNode(PDT->findNearestCommonDominator(bbA, bbB));
             DepenTupleTy ABLT = {dnA, dnB, dnL, TF};
@@ -85,16 +86,20 @@ void CDG::buildinitCDG(DepenSSetTy S)
  */
 void CDG::findPathL2B(const DepenSSetTy S, vector<DTNodeTy> &P)
 {
+    outs()<<"Traversing the DomTree From Root"<<"\n";//DEBUG
     findPathA2B(PDT->getRootNode(), S, P);
 }
 
 void CDG::findPathA2B(DTNodeTy A, DepenSSetTy S, vector<DTNodeTy> &P)
 {
+    outs()<<"Traver Dom_node_value:: "<<A;//DEBUG
+//    A->getBlock()->printAsOperand(outs(),false);//DEBUG
     P.push_back(A);
     for (auto it = S.begin(), ie = S.end(); it != ie; it++)
     {
         if (A == (*it)->B)
         {
+            outs()<<"Find B!!"<<"\t";//DEBUG
             handleDepenVec(*it, P);
             S.erase(it);
             break;
@@ -114,27 +119,32 @@ void CDG::handleDepenVec(DepenTupleTy *LB, vector<DTNodeTy> &P)
 {
     DTNodeTy L = LB->L, B = LB->B, A = LB->A;
     NodeID TF = LB->TF;
-    CDGNode *nodeA = addControlCDGNode(A->getBlock()); //all node below dependent on A
     auto pi = std::find(P.begin(), P.end(), L);        //find L
-    if (PDT->properlyDominates(L, B)) {                  //if A is the ancestor of B,then A==L the path contant L,otherwise dont contain
-        if (pi == P.end())
-            return;
-        else
-            ++pi;
-    }
+    if (pi == P.end())
+        return;
+    if (A!=L)                 //if A!=L, the path contant L,otherwise dont contain
+        ++pi;
+    CDGNode *nodeA = addControlCDGNode(A->getBlock()); //all node below dependent on A
     CDGEdge::LabelType l = lable2bool(TF);
-    CDSetElemTy tmpCDSetElem(nodeA->getId(), l);
+    CDSetElemTy tmpCDSetElem(nodeA->getId(), l);//依赖集中的元素
     for (; pi != P.end(); pi++)
     { //遍历路径P，添加节点和边
-        CDGNode *CDnode = addControlCDGNode((*pi)->getBlock());
-        addCDGEdge(nodeA, CDnode, l);
+        CDGNode *cdNode;
+        NodeID cdNodeID=getNodeIDFromBB((*pi)->getBlock());
+        if(cdNodeID==-1){
+            cdNode = addControlCDGNode((*pi)->getBlock());
+            cdNodeID=cdNode->getId();
+        }
+        else
+            cdNode= getCDGNode(cdNodeID);
+        addCDGEdge(nodeA, cdNode, l);
         //得到依赖集（CD集）
-        auto iter = CDMap.find(nodeA->getId());
+        auto iter = CDMap.find(cdNodeID);
         if (iter == CDMap.end())
         { //没找到就就，新一个集合
             CDSetTy tmpCDSet;
             tmpCDSet.insert(tmpCDSetElem);
-            CDMap.insert({nodeA->getId(), tmpCDSet});
+            CDMap.insert({cdNodeID, tmpCDSet});
         }
         else
         { //添加被依赖节点A到依赖的依赖集里
@@ -182,13 +192,13 @@ inline void ControlDependenceGraph::addCDGNode(CDGNode *node)
 }
 inline CDGNode *ControlDependenceGraph::addControlCDGNode(BasicBlock *nbb)
 {
-    CDGNode *iNode = new CDGNode(CDGNode::ControlNode);
+    CDGNode *iNode = new ControlCDGNode(totalCDGNode++,nbb);
     addCDGNode(iNode);
     return iNode;
 }
-inline CDGNode *ControlDependenceGraph::addRegionCDGNode()
+inline CDGNode *ControlDependenceGraph::addRegionCDGNode(BasicBlock *nbb)
 {
-    CDGNode *iNode = new CDGNode(CDGNode::RegionNode);
+    CDGNode *iNode = new RegionCDGNode(totalCDGNode++,nbb);
     addCDGNode(iNode);
     return iNode;
 }
@@ -258,7 +268,7 @@ void ControlDependenceGraph::addRegionNodeToCDG()
             continue;
 
         // 新建 Region Node，并将其加入图中
-        CDGNode *regionNode = new CDGNode(CDGNode::NodeType::RegionNode);
+        CDGNode *regionNode = addRegionCDGNode(nullptr);
         this->addGNode(regionNode->getId(), regionNode);
 
         // 建立 node <-- none -- RegionNode
@@ -334,7 +344,7 @@ void ControlDependenceGraph::addRegionNodeToCDG()
                 continue;
             // 如果 T/F 有多条出边，则新建一个 RegionNode，删除原先的边，并建立新边
             //      1. 新建 Region Node，并将其加入图中
-            CDGNode *regionNode = new CDGNode(CDGNode::NodeType::RegionNode);
+            CDGNode *regionNode = addRegionCDGNode(nullptr);
             this->addGNode(regionNode->getId(), regionNode);
 
             // 建立 RegionNode <-- T/F -- node
@@ -456,16 +466,46 @@ void ControlDependenceGraph::PostOrderTraversalPDTNode(const DomTreeNode *dtn)
     }
 }
 
+
+void CDG::dump(const std::string& file, bool simple){
+    GraphPrinter::WriteGraphToFile(outs(), file, this, simple);
+};
+
+void CDG::showSetS(DepenSSetTy S,llvm::raw_ostream &O){
+    for (auto it=S.begin(),ie=S.end();it!=ie;++it){
+        O<<"setS_A:"<<" ";
+        (*it)->A->getBlock()->printAsOperand(O, false);
+        O<<"\t,B:"<<" ";
+        (*it)->B->getBlock()->printAsOperand(O, false);
+        O<<"\t,L:"<<" ";
+        (*it)->L->getBlock()->printAsOperand(O, false);
+        O<<"\t,TF:"<<(*it)->TF<<"\n";
+    }
+}
+
+void CDG::showCDMap(CDMapTy CD,llvm::raw_ostream &O){
+    for (auto it=CD.begin(),ie=CD.end();it!=ie;++it){
+        O<<"***CD_A****:";
+        getCDGNode((*it).first)->getBasicBlock()->printAsOperand(O,false);
+        O<<"\t\t elem:";
+        CDSetTy cdSet=(*it).second;
+        for(auto sit=cdSet.begin(),sie=cdSet.end();sit!=sie;++sit){
+            getCDGNode((*sit).getNodeID())->getBasicBlock()->printAsOperand(O,false);
+            O<<"\t ";
+        }
+        O<<"\n";
+    }
+}
+
 ControlDependenceEdge::ControlDependenceEdge(
     ControlDependenceNode *s,
     ControlDependenceNode *d,
     LabelType k)
     : GenericCDEdgeTy(s, d, k) {}
 
-NodeID ControlDependenceNode::_nextNodeID = 0;
 
-ControlDependenceNode::ControlDependenceNode(NodeType ty)
-    : GenericCDNodeTy(_nextNodeID++, ty){};
+ControlDependenceNode::ControlDependenceNode(NodeID i,NodeType ty)
+    : GenericCDNodeTy(i, ty) , _bb(NULL){};
 
 void ControlDependenceNode::setBasicBlock(BasicBlock *bb)
 {
@@ -476,3 +516,11 @@ BasicBlock *ControlDependenceNode::getBasicBlock()
 {
     return _bb;
 }
+ControlCDGNode::ControlCDGNode(NodeID id,llvm::BasicBlock* bb)
+        : CDGNode(id,CDGNode::NodeType::ControlNode) {
+    setBasicBlock(bb);
+};
+RegionCDGNode::RegionCDGNode(NodeID id,llvm::BasicBlock* bb)
+        : CDGNode(id,CDGNode::NodeType::RegionNode) {
+    setBasicBlock(bb);
+};

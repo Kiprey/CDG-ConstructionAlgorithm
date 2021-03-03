@@ -17,31 +17,26 @@ public:
         ControlNode,
         RegionNode
     };
-    ControlDependenceNode(NodeType ty);
+    ControlDependenceNode(NodeID i,NodeType ty );
     void setBasicBlock(BasicBlock *bb);
     BasicBlock *getBasicBlock();
 
 private:
     BasicBlock *_bb;
-    static NodeID _nextNodeID;
 };
 
 class ControlCDGNode : public CDGNode
 {
 public:
-    ControlCDGNode();
-    void setBasicBlock(BasicBlock *bb);
-    BasicBlock *getBasicBlock();
+    ControlCDGNode(NodeID id,BasicBlock *bb);
 
 private:
-    BasicBlock *_bb;
 };
 
 class RegionCDGNode : public CDGNode
 {
 public:
-    RegionCDGNode();
-    void setCDS();
+    RegionCDGNode(NodeID id,BasicBlock *bb);
 
 private:
 };

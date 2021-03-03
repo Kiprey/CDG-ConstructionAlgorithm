@@ -18,7 +18,7 @@ bool ControlDependenceSetElement::operator==(const ControlDependenceSetElement &
     return _CDG_ID == e._CDG_ID && _label == e._label;
 }
 
-NodeID ControlDependenceSetElement::getNodeID()
+NodeID ControlDependenceSetElement::getNodeID() const
 {
     return _CDG_ID;
 }

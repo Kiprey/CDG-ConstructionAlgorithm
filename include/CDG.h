@@ -37,7 +37,7 @@ public:
     // 排序时优先按照 节点编号 排序，例如 {1, T} < {1, F} < {2, T}
     bool operator<(const ControlDependenceSetElement &e) const;
     bool operator==(const ControlDependenceSetElement &e) const;
-    NodeID getNodeID();
+    NodeID getNodeID() const;
     CDGEdge::LabelType getLabel();
 
 private:
@@ -78,6 +78,12 @@ public:
     inline void removeCDGNode(NodeType *node);
     NodeID getNodeIDFromBB(BasicBlock *bb);
 
+    void showSetS(DepenSSetTy S,llvm::raw_ostream &O);
+    void showCDMap(CDMapTy CD,llvm::raw_ostream &O);
+    /// Dump graph into dot file
+    void dump(const std::string& file, bool simple = false);
+
+    NodeID totalCDGNode;
 private:
     // BasicBlock* -> CDG Node ID
     map<BasicBlock *, NodeID> _bb2CDGNodeID;
@@ -86,7 +92,7 @@ private:
     ICFG* icfg;
     inline void addCDGNode(NodeType *node);
     inline CDGNode *addControlCDGNode(BasicBlock *nbb);
-    inline CDGNode *addRegionCDGNode();
+    inline CDGNode *addRegionCDGNode(BasicBlock *nbb);
     void PostOrderTraversalPDTNode(const DomTreeNode *dtn);
     void addRegionNodeToCDG();
 };
