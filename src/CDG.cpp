@@ -4,7 +4,9 @@ ControlDependenceGraph::ControlDependenceGraph(ICFG* icfg):icfg(icfg),totalCDGNo
 {
     PDT=new llvm::PostDominatorTree();
     /// @todo 构建PDT
+
 }
+
 
 /*!
  * 构建初始的CDG图
@@ -92,6 +94,7 @@ void CDG::findPathL2B(const DepenSSetTy S, vector<DTNodeTy> &P)
 
 void CDG::findPathA2B(DTNodeTy A, DepenSSetTy S, vector<DTNodeTy> &P)
 {
+    initCDGNode(A->getBlock());
     outs()<<"Traver Dom_node_value:: "<<A;//DEBUG
 //    A->getBlock()->printAsOperand(outs(),false);//DEBUG
     P.push_back(A);
@@ -109,6 +112,11 @@ void CDG::findPathA2B(DTNodeTy A, DepenSSetTy S, vector<DTNodeTy> &P)
         findPathA2B(*it, S, P);
     P.pop_back();
 }
+
+
+void CDG::initCDGNode(BasicBlock* bb){
+    ControlCDGNode* cdgNode = addControlCDGNode(bb);
+};
 
 /*!
  * 处理路径P生成CD集
@@ -129,14 +137,9 @@ void CDG::handleDepenVec(DepenTupleTy *LB, vector<DTNodeTy> &P)
     CDSetElemTy tmpCDSetElem(nodeA->getId(), l);//依赖集中的元素
     for (; pi != P.end(); pi++)
     { //遍历路径P，添加节点和边
-        CDGNode *cdNode;
         NodeID cdNodeID=getNodeIDFromBB((*pi)->getBlock());
-        if(cdNodeID==-1){
-            cdNode = addControlCDGNode((*pi)->getBlock());
-            cdNodeID=cdNode->getId();
-        }
-        else
-            cdNode= getCDGNode(cdNodeID);
+        assert(cdNodeID!=-1);
+        CDGNode *cdNode=getCDGNode(cdNodeID);
         addCDGEdge(nodeA, cdNode, l);
         //得到依赖集（CD集）
         auto iter = CDMap.find(cdNodeID);
@@ -270,15 +273,11 @@ void ControlDependenceGraph::addRegionNodeToCDG()
         // 新建 Region Node，并将其加入图中
         CDGNode *regionNode = addRegionCDGNode();
 
-        // 建立 node <-- none -- RegionNode
-        CDGEdge *region2dst = new CDGEdge(regionNode, dstNode, CDGEdge::LabelType::None);
-        regionNode->addOutgoingEdge(region2dst);
-        dstNode->addIncomingEdge(region2dst);
-
         // 遍历当前节点所有入边
-        for (CDGNode::const_iterator it = dstNode->InEdgeBegin(), eit = dstNode->InEdgeEnd(); it != eit; ++it)
+        ///@warning 注意下列迭代过程会删除某些边导致迭代器失效
+        for (CDGNode::const_iterator it = dstNode->InEdgeBegin(), eit = dstNode->InEdgeEnd(); it != eit;)
         {
-            CDGEdge *edge = *it;
+            CDGEdge *edge = *(it++);
             CDGNode *srcNode = edge->getSrcNode();
             // 先加边 regionNode <-- edge -- srcNode 的边
             CDGEdge *src2region = new CDGEdge(srcNode, regionNode, (CDGEdge::LabelType)edge->getEdgeKind());
@@ -299,6 +298,11 @@ void ControlDependenceGraph::addRegionNodeToCDG()
             //                 即 NodeID* -> CDSetTy
             CDMap[dstNode->getId()].insert(elem);
         }
+        // 建立 node <-- none -- RegionNode
+        CDGEdge *region2dst = new CDGEdge(regionNode, dstNode, CDGEdge::LabelType::None);
+        regionNode->addOutgoingEdge(region2dst);
+        dstNode->addIncomingEdge(region2dst);
+
     }
 
     /* 3. 后序遍历 后向支配树，计算当前结点 N 的 CD 与 后支配树中 N 的每个直接子结点的CD 的交集 INT。
@@ -386,10 +390,12 @@ void ControlDependenceGraph::PostOrderTraversalPDTNode(const DomTreeNode *dtn)
     // 获取当前节点的 CDSet
     NodeID nodeID = this->getNodeIDFromBB(dtn->getBlock());
     CDSetTy cd = CDMap[nodeID];
-
+    ///@warning 不是所有的PDTNode（或者说BasicBlock）都有对应的CDGNode
     CDGNode *currNode = this->getCDGNode(nodeID);
     CDGNode::GEdgeSetTy currInEdgeSet = currNode->getInEdges();
     // 一个简单的 check， 按理来说此时 所有的 control node 只会有一条入边，这条入边从 RegionNode 中连入
+    if(currInEdgeSet.size()==0)
+        return;
     assert(currInEdgeSet.size() == 1);
     CDGNode *currRegionNode = (*(currInEdgeSet.begin()))->getSrcNode();
 
@@ -418,9 +424,10 @@ void ControlDependenceGraph::PostOrderTraversalPDTNode(const DomTreeNode *dtn)
             // 获取交集 INT 中对应 CD 的 edge
             // 遍历当前节点的入边，查找满足 INT 的对应 src 节点以及 edge label
             // 由于交集可能有1个以上的节点，因此为了保守起见，循环遍历删除child region node对应的 edge
-            for (auto edgeIter = childRegionNode->InEdgeBegin(); edgeIter != childRegionNode->InEdgeEnd(); edgeIter++)
+            ///@warning 注意迭代器被删除后失效
+            for (auto edgeIter = childRegionNode->InEdgeBegin(); edgeIter != childRegionNode->InEdgeEnd();)
             {
-                CDGEdge *inEdge = *edgeIter;
+                CDGEdge *inEdge = *(edgeIter++);
                 // 构造一个依赖对象
                 CDSetElemTy cdElem(inEdge->getSrcID(), (CDGEdge::LabelType)inEdge->getEdgeKind());
                 // 去 INT 中查找是否存在当前依赖对象，如果存在：
