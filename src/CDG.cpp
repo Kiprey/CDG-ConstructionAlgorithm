@@ -13,14 +13,14 @@ ControlDependenceGraph::ControlDependenceGraph(ICFG* icfg):icfg(icfg)
 void ControlDependenceGraph::initCDG(const SVFFunction *fun)
 {
     PDT->recalculate(*fun->getLLVMFun());
+    PDT->print(outs());
 
     const BasicBlock *exbb = SVFUtil::getFunExitBB(fun->getLLVMFun());
     const BasicBlock *enbb = &(fun->getLLVMFun()->front());
 
     Set<const ICFGNode *> visited;
     DepenSSetTy setS;
-    ICFGNode* node=icfg->getICFGNode(11);
-    findSSet(node, visited, setS);//DEBUG  icfg->getFunEntryBlockNode(fun)
+    findSSet(icfg->getFunEntryBlockNode(fun), visited, setS);//DEBUG  icfg->getFunEntryBlockNode(fun)
     buildinitCDG(setS);
     addRegionNodeToCDG();
 }

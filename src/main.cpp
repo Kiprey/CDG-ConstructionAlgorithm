@@ -35,8 +35,15 @@ int main(int argc, char ** argv) {
     PAGBuilder builder;
     PAG* pag = builder.build(svfModule);
     /// ICFG
-    auto iter=svfModule->begin();
-    const SVFFunction* fun=*(++iter);
+    const SVFFunction* fun;
+    NodeID n=0;
+    for (auto it=svfModule->begin(),ie=svfModule->end();it!=ie;it++,n++){
+        outs()<<"FuncName::"<<(*it)->getName()<<"\n";
+        if(n==4){
+            fun=*it;
+            break;
+        }
+    }
     ICFG* icfg = pag->getICFG();
     ControlDependenceGraph* cdGraph = new ControlDependenceGraph(icfg);
     cdGraph->initCDG(fun);
