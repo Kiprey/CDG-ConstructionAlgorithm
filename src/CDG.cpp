@@ -3,10 +3,30 @@
 ControlDependenceGraph::ControlDependenceGraph(ICFG* icfg):icfg(icfg),totalCDGNode(0)
 {
     PDT=new llvm::PostDominatorTree();
+//    llvm::Function llvmFun(fun.getLLVMFun());
     /// @todo 构建PDT
 
 }
+/**
+ * 构建后支配树
+ */
+void CDG::buildPDT(const SVFFunction *fun,DepenSSetTy &setS) {
+    llvm::BasicBlock* entryBB=&(fun->getLLVMFun()->front());
+    llvm::BasicBlock* exitBB=&(fun->getLLVMFun()->back());
+    PDT->recalculate(*fun->getLLVMFun());
+    BasicBlock *bb=llvm::BasicBlock ::Create(entryBB->getContext(), "before_entry", fun->getLLVMFun(),
+                                             exitBB);
 
+    DTNodeTy dnA=PDT->addNewBlock(bb,exitBB);
+    DTNodeTy dnB=PDT->getNode(entryBB);
+    DTNodeTy dnL=PDT->getNode(exitBB);
+    PDT->print(outs());
+
+    exitBB->getName();
+    DepenTupleTy ABLT = {dnA,dnB,dnL, CDGEdge::LabelType::T};
+    setS.insert(&ABLT);
+    showSetS(setS,outs());
+}
 
 /*!
  * 构建初始的CDG图
@@ -14,19 +34,37 @@ ControlDependenceGraph::ControlDependenceGraph(ICFG* icfg):icfg(icfg),totalCDGNo
  */
 void ControlDependenceGraph::initCDG(const SVFFunction *fun)
 {
+    DepenSSetTy setS;
+    setS.clear();
+    llvm::BasicBlock* entryBB=&(fun->getLLVMFun()->front());
+    llvm::BasicBlock* exitBB=&(fun->getLLVMFun()->back());
+    ///@queation 一旦封装到函数里，SetS就会莫名改变?
     PDT->recalculate(*fun->getLLVMFun());
+    BasicBlock *bb=llvm::BasicBlock ::Create(entryBB->getContext(), "before_entry", fun->getLLVMFun(),
+                                             exitBB);
+
+    DTNodeTy dnA=PDT->addNewBlock(bb,exitBB);
+    DTNodeTy dnB=PDT->getNode(entryBB);
+    DTNodeTy dnL=PDT->getNode(exitBB);
     PDT->print(outs());
+
+    DepenTupleTy ABLT = {dnA,dnB,dnL, CDGEdge::LabelType::T};
+    setS.insert(&ABLT);
+
+    showSetS(setS,outs());
     const BasicBlock *exbb = SVFUtil::getFunExitBB(fun->getLLVMFun());
     const BasicBlock *enbb = &(fun->getLLVMFun()->front());
 
     Set<const ICFGNode *> visited;
-    DepenSSetTy setS;
     findSSet(icfg->getFunEntryBlockNode(fun), visited, setS);//1.找到S集合
     showSetS(setS,outs());
+
     buildinitCDG(setS);//2.根据S集合计算支配关系，同时添加节点和边构建初始的CDG
     showCDMap(CDMap,outs());
-    dump("wz_cdg");
+    dump("wz_initial_cdg");
+
     addRegionNodeToCDG();//3.添加RegionNode
+    dump("wz_final_cdg");
 }
 /*!
  * 遍历CFG的所有分支节点，找到S集合存入set'S中
@@ -476,18 +514,15 @@ void ControlDependenceGraph::PostOrderTraversalPDTNode(const DomTreeNode *dtn)
 }
 
 
-void CDG::dump(const std::string& file, bool simple){
-    GraphPrinter::WriteGraphToFile(outs(), file, this, simple);
+void CDG::dump(const std::string& file){
+    GraphPrinter::WriteGraphToFile(outs(), file, this);
 };
 
-void CDG::showSetS(DepenSSetTy S,llvm::raw_ostream &O){
+void CDG::showSetS(DepenSSetTy &S,llvm::raw_ostream &O){
     for (auto it=S.begin(),ie=S.end();it!=ie;++it){
-        O<<"setS_A:"<<" ";
-        (*it)->A->getBlock()->printAsOperand(O, false);
-        O<<"\t,B:"<<" ";
-        (*it)->B->getBlock()->printAsOperand(O, false);
-        O<<"\t,L:"<<" ";
-        (*it)->L->getBlock()->printAsOperand(O, false);
+        O<<"setS_A:"<<" "<<(*it)->A->getBlock()->getName();
+        O<<"\t,B:"<<" "<<(*it)->B->getBlock()->getName();
+        O<<"\t,L:"<<" "<<(*it)->L->getBlock()->getName();
         O<<"\t,TF:"<<(*it)->TF<<"\n";
     }
 }
@@ -533,3 +568,136 @@ RegionCDGNode::RegionCDGNode(NodeID id)
         : CDGNode(id,CDGNode::NodeType::RegionNode) {
     setBasicBlock(nullptr);
 };
+
+
+
+const std::string CDGNode::toString() const {
+    std::string str;
+    raw_string_ostream rawstr(str);
+    rawstr << "CDGNode ID: " << getId();
+    return rawstr.str();
+}
+
+
+const std::string ControlCDGNode::toString() const {
+    std::string str;
+    raw_string_ostream rawstr(str);
+    rawstr << "ControlCDGNode ID: " << getId();
+    return rawstr.str();
+}
+
+
+const std::string RegionCDGNode::toString() const {
+    std::string str;
+    raw_string_ostream rawstr(str);
+    rawstr << "RegionCDGNode ID: " << getId();
+//    rawstr << " " << *getInst() << " {fun: " << getFun()->getName() << "}";
+    return rawstr.str();
+}
+
+
+/*!
+ * GraphTraits specialization
+ */
+namespace llvm {
+/*!
+ * Write control dependence graph into dot file for debugging
+ */
+    template<>
+struct DOTGraphTraits<CDG *> : public DefaultDOTGraphTraits {
+
+    typedef CDGNode NodeType;
+    typedef NodeType::iterator ChildIteratorType;
+    DOTGraphTraits(bool isSimple = false) :
+            DefaultDOTGraphTraits(isSimple)
+    {
+    }
+
+    /// Return name of the graph
+    static std::string getGraphName(CDG *graph)
+    {
+        return "CDG";
+    }
+
+    /// Return label of a CDG node with two display mode
+    /// Either you can choose to display the name of the value or the whole instruction
+    static std::string getNodeLabel(CDGNode *node, CDG*)
+    {
+        std::string str;
+        raw_string_ostream rawstr(str);
+        // print bb info
+        if (ControlCDGNode* cNode = SVFUtil::dyn_cast<ControlCDGNode>(node))
+        {
+            rawstr << "C: "<< node->getId() << " \n";
+        }
+        else if(RegionCDGNode* cNode = SVFUtil::dyn_cast<RegionCDGNode>(node)){
+            rawstr << "R: "<<node->getId();
+        }
+        else
+        {
+        }
+        if (node->getBasicBlock()){
+            rawstr << "[";
+            node->getBasicBlock()->printAsOperand(rawstr,false);
+            rawstr << "]\n";
+        }
+        return rawstr.str();
+    }
+
+    static std::string getNodeAttributes(CDGNode *node, CDG*)
+    {
+        if (SVFUtil::isa<ControlCDGNode>(node))
+        {
+//            return "shape=hexagon";
+//            return "shape=diamond";
+//            return "shape=circle";
+            return "color=blue";
+        }
+        else if (SVFUtil::isa<RegionCDGNode>(node))
+        {
+//            return "shape=doubleoctagon";
+//            return "shape=septagon";
+//            return "shape=Mcircle";
+//            return "shape=doublecircle";
+            return "shape=circle";
+        }
+        else
+        {
+        }
+        return "";
+    }
+//
+//    template<class EdgeIter>
+//    static std::string getEdgeAttributes(PAGNode*, EdgeIter EI, PAG*)
+//    {
+//        const PAGEdge* edge = *(EI.getCurrent());
+//        assert(edge && "No edge found!!");
+//        if (SVFUtil::isa<AddrPE>(edge))
+//        {
+//            return "color=green";
+//        }
+//        else
+//        {
+//            assert(0 && "No such kind edge!!");
+//        }
+//    }
+//
+//    template<class EdgeIter>
+//    static std::string getEdgeSourceLabel(PAGNode*, EdgeIter EI)
+//    {
+//        const PAGEdge* edge = *(EI.getCurrent());
+//        assert(edge && "No edge found!!");
+//        if(const CallPE* calledge = SVFUtil::dyn_cast<CallPE>(edge))
+//        {
+//            const Instruction* callInst= calledge->getCallSite()->getCallSite();
+//            return SVFUtil::getSourceLoc(callInst);
+//        }
+//        else if(const RetPE* retedge = SVFUtil::dyn_cast<RetPE>(edge))
+//        {
+//            const Instruction* callInst= retedge->getCallSite()->getCallSite();
+//            return SVFUtil::getSourceLoc(callInst);
+//        }
+//        return "";
+//    }
+};
+} // End namespace llvm

@@ -68,6 +68,7 @@ public:
 public:
     ControlDependenceGraph(ICFG* icfg);
 
+    void buildPDT(const SVFFunction *fun,DepenSSetTy &setS);
     void initCDG(const SVFFunction *fun); //construct initial CDG
     void initCDGNode(BasicBlock* bb);//初始化一个节点
     void findSSet(ICFGNode *entryNode, Set<const ICFGNode *> &visited, DepenSSetTy &setS);
@@ -85,14 +86,13 @@ public:
     inline void removeCDGNode(NodeType *node);
     NodeID getNodeIDFromBB(BasicBlock *bb);
 
-    void showSetS(DepenSSetTy S,llvm::raw_ostream &O);
+    void showSetS(DepenSSetTy &S,llvm::raw_ostream &O);
     void showCDMap(CDMapTy CD,llvm::raw_ostream &O);
     /// Dump graph into dot file
-    void dump(const std::string& file, bool simple = false);
+    void dump(const std::string& file);
 
     NodeID totalCDGNode;
 private:
-    // BasicBlock* -> CDG Node ID
     map<BasicBlock *, NodeID> _bb2CDGNodeID;
     PostDominatorTree *PDT ;
     CDMapTy CDMap;
