@@ -330,13 +330,13 @@ void ControlDependenceGraph::addRegionNodeToCDG()
             delete edge;
 
             // 2. 在修改边指向 RegionNode 的过程中，可以顺便使用 Map 将 RegionNodeID映射到对应的控制依赖集。
-            CDSetElemTy elem(srcNode->getId(), (CDGEdge::LabelType)src2region->getEdgeKind());
-            /// @question 这里ControlNode的CD集已经有了，不需要重复添加，是否应该删除原本的CD集，将CD集中的项替换为{RNodeID,None},
-            /// 再添加一个R节点的CD集
+//            CDSetElemTy elem(srcNode->getId(), (CDGEdge::LabelType)src2region->getEdgeKind());
+            /// @fix 这里ControlNode的CD集已经有了，不需要重复添加
+            /// @question 是否应该删除原本的CD集，将CD集中的项替换为{RNodeID,None},再添加一个R节点的CD集
             // map 的 operator[] 在找不到 Set 时将自动创建，因此不必手动判断是否存在
             // 控制依赖集合映射： dstNodeID -> { { srcNodeID1, edgeLable1 }， { ... }， { ... } }
             //                 即 NodeID* -> CDSetTy
-            CDMap[dstNode->getId()].insert(elem);
+//            CDMap[dstNode->getId()].insert(elem);
         }
         // 建立 node <-- none -- RegionNode
         CDGEdge *region2dst = new CDGEdge(regionNode, dstNode, CDGEdge::LabelType::None);
@@ -344,7 +344,7 @@ void ControlDependenceGraph::addRegionNodeToCDG()
         dstNode->addIncomingEdge(region2dst);
 
     }
-
+    dump("cdg_after_initR");
     /* 3. 后序遍历 后向支配树，计算当前结点 N 的 CD 与 后支配树中 N 的每个直接子结点的CD 的交集 INT。
           判断如果R的控制依赖关系的前驱结点集合，是某个其他节点的控制依赖关系的前驱结点集合的子集，
           则使该节点直接依赖R来进行控制，以代替CD中的节点
@@ -354,7 +354,7 @@ void ControlDependenceGraph::addRegionNodeToCDG()
     assert(root);
     auto pdtRootNode = PDT->getNode(root);
     PostOrderTraversalPDTNode(pdtRootNode);
-
+    dump("cdg_after_mergeR");
     /**
      *  4. 对于具有多个控制依赖后继结点，并且具有相同关联标签L的任何谓词节点P，创建一个区域节点R。
      *     使图中具有控制依赖前驱结点 P 且标签L的每个节点都具有该区域节点 R。
@@ -399,9 +399,10 @@ void ControlDependenceGraph::addRegionNodeToCDG()
             regionNode->addIncomingEdge(node2regionNode);
 
             //      2. 遍历某一类型的所有边，将其删除并建立新边
-            for (auto edgeIter = edges.begin(); edgeIter != edges.end(); edgeIter++)
+            ///@note delete后指针失效但不影响list的顺序
+            for (auto edgeIter = edges.begin(); edgeIter != edges.end(); )
             {
-                CDGEdge *edge = *edgeIter;
+                CDGEdge *edge = *(edgeIter++);
                 CDGNode *anotherRegionNode = edge->getDstNode();
                 // 先加边 anotherRegionNode <-- none -- regionNode 的边
                 CDGEdge *region2anotherRegion = new CDGEdge(regionNode, anotherRegionNode, (CDGEdge::LabelType)edge->getEdgeKind());
@@ -425,7 +426,7 @@ void ControlDependenceGraph::PostOrderTraversalPDTNode(const DomTreeNode *dtn)
     // 先遍历处理子节点
     for (auto iter = dtn->begin(); iter != dtn->end(); iter++)
         PostOrderTraversalPDTNode(*iter);
-
+    outs()<<"Traver Dom_node_value:: "<<dtn->getBlock()->getName()<<"\n";//DEBUG
     // 最后处理根节点
     // 获取当前节点的 CDSet
     NodeID nodeID = this->getNodeIDFromBB(dtn->getBlock());
@@ -492,9 +493,10 @@ void ControlDependenceGraph::PostOrderTraversalPDTNode(const DomTreeNode *dtn)
             // 获取交集 INT 中对应 CD 的 edge
             // 遍历当前节点的入边，查找满足 INT 的对应 src 节点以及 edge label
             // 由于交集可能有1个以上的节点，因此为了保守起见，循环遍历删除 curr region node对应的 edge
-            for (auto edgeIter = currRegionNode->InEdgeBegin(); edgeIter != currRegionNode->InEdgeEnd(); edgeIter++)
+            ///@warning 注意迭代器失效
+            for (auto edgeIter = currRegionNode->InEdgeBegin(); edgeIter != currRegionNode->InEdgeEnd();)
             {
-                CDGEdge *inEdge = *edgeIter;
+                CDGEdge *inEdge = *(edgeIter++);
                 // 构造一个依赖对象
                 CDSetElemTy cdElem(inEdge->getSrcID(), (CDGEdge::LabelType)inEdge->getEdgeKind());
                 // 去 INT 中查找是否存在当前依赖对象，如果存在：
