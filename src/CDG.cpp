@@ -5,7 +5,6 @@ ControlDependenceGraph::ControlDependenceGraph(ICFG* icfg):icfg(icfg),totalCDGNo
     PDT=new llvm::PostDominatorTree();
 //    llvm::Function llvmFun(fun.getLLVMFun());
     /// @todo 构建PDT
-
 }
 /**
  * 构建后支配树
@@ -50,7 +49,8 @@ void ControlDependenceGraph::initCDG(const SVFFunction *fun)
 
     DepenTupleTy ABLT = {dnA,dnB,dnL, CDGEdge::LabelType::T};
     setS.insert(&ABLT);
-
+    //为每个PDT节点初始化一个CDG节点
+    initCDGNodeFromPDT(PDT->getRootNode());
     showSetS(setS,outs());
     const BasicBlock *exbb = SVFUtil::getFunExitBB(fun->getLLVMFun());
     const BasicBlock *enbb = &(fun->getLLVMFun()->front());
@@ -133,7 +133,6 @@ void CDG::findPathL2B(const DepenSSetTy S, vector<DTNodeTy> &P)
 
 void CDG::findPathA2B(DTNodeTy A, DepenSSetTy S, vector<DTNodeTy> &P)
 {
-    initCDGNode(A->getBlock());
     outs()<<"Traver Dom_node_value:: "<<A;//DEBUG
 //    A->getBlock()->printAsOperand(outs(),false);//DEBUG
     P.push_back(A);
@@ -153,9 +152,11 @@ void CDG::findPathA2B(DTNodeTy A, DepenSSetTy S, vector<DTNodeTy> &P)
 }
 
 
-void CDG::initCDGNode(BasicBlock* bb){
-    ControlCDGNode* cdgNode = addControlCDGNode(bb);
-};
+void CDG::initCDGNodeFromPDT(DTNodeTy dtNode) {
+    addControlCDGNode(dtNode->getBlock());
+    for(auto it=dtNode->begin(),ie=dtNode->end();it!=ie;++it)
+        initCDGNodeFromPDT(*it);
+}
 
 /*!
  * 处理路径P生成CD集
@@ -171,7 +172,7 @@ void CDG::handleDepenVec(DepenTupleTy *LB, vector<DTNodeTy> &P)
         return;
     if (A!=L)                 //if A!=L, the path contant L,otherwise dont contain
         ++pi;
-    CDGNode *nodeA = addControlCDGNode(A->getBlock()); //all node below dependent on A
+    CDGNode *nodeA = getCDGNode(getNodeIDFromBB(A->getBlock())); //all node below dependent on A
     CDGEdge::LabelType l = lable2bool(TF);
     CDSetElemTy tmpCDSetElem(nodeA->getId(), l);//依赖集中的元素
     for (; pi != P.end(); pi++)
