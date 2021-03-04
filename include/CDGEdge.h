@@ -11,11 +11,16 @@ using namespace std;
 class ControlDependenceEdge;
 class ControlDependenceNode;
 
+typedef ControlDependenceNode CDGNode;
 typedef ControlDependenceEdge CDGEdge;
 typedef GenericEdge<ControlDependenceNode> GenericCDEdgeTy;
 class ControlDependenceEdge : public GenericCDEdgeTy
 {
 public:
+    typedef GenericNode<CDGNode,CDGEdge>::GEdgeSetTy CDGEdgeSetTy;
+    typedef CDGEdge::CDGEdgeSetTy::iterator iterator;
+    typedef CDGEdge::CDGEdgeSetTy::const_iterator const_iterator;
+
     enum LabelType
     {
         T,

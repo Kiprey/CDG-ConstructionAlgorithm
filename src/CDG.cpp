@@ -25,6 +25,7 @@ void ControlDependenceGraph::initCDG(const SVFFunction *fun)
     showSetS(setS,outs());
     buildinitCDG(setS);//2.根据S集合计算支配关系，同时添加节点和边构建初始的CDG
     showCDMap(CDMap,outs());
+    dump("wz_cdg");
     addRegionNodeToCDG();//3.添加RegionNode
 }
 /*!
@@ -476,7 +477,7 @@ void ControlDependenceGraph::PostOrderTraversalPDTNode(const DomTreeNode *dtn)
 
 
 void CDG::dump(const std::string& file, bool simple){
-//    GraphPrinter::WriteGraphToFile(outs(), file, this, simple);
+    GraphPrinter::WriteGraphToFile(outs(), file, this, simple);
 };
 
 void CDG::showSetS(DepenSSetTy S,llvm::raw_ostream &O){

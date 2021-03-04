@@ -48,6 +48,12 @@ private:
 class ControlDependenceGraph : public GenericGraph<ControlDependenceNode, ControlDependenceEdge>
 {
 public:
+
+    typedef Map<NodeID, CDGNode *> CDGNodeIDToNodeMapTy;
+    typedef CDGEdge::CDGEdgeSetTy CDGEdgeSetTy;
+    typedef CDGNodeIDToNodeMapTy::iterator iterator;
+    typedef CDGNodeIDToNodeMapTy::const_iterator const_iterator;
+
     typedef DomTreeNodeBase<llvm::BasicBlock> *DTNodeTy;
     typedef struct
     {
@@ -97,5 +103,28 @@ private:
     void PostOrderTraversalPDTNode(const DomTreeNode *dtn);
     void addRegionNodeToCDG();
 };
+
+namespace llvm
+{
+/* !
+ * GraphTraits specializations for generic graph algorithms.
+ * Provide graph traits for traversing from a constraint node using standard graph traversals.
+ */
+    template<> struct GraphTraits<CDGNode*> : public GraphTraits<SVF::GenericNode<CDGNode,CDGEdge>*  >
+    {
+    };
+
+/// Inverse GraphTraits specializations for call graph node, it is used for inverse traversal.
+    template<>
+    struct GraphTraits<Inverse<CDGNode *> > : public GraphTraits<Inverse<SVF::GenericNode<CDGNode,CDGEdge>* > >
+    {
+    };
+
+    template<> struct GraphTraits<CDG*> : public GraphTraits<SVF::GenericGraph<CDGNode,CDGEdge>* >
+    {
+        typedef CDGNode *NodeRef;
+    };
+
+} // End namespace llvm
 
 #endif
