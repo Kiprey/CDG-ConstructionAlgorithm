@@ -51,7 +51,7 @@ void ControlDependenceGraph::initCDG(const SVFFunction *fun)
     setS.insert(&ABLT);
     //为每个PDT节点初始化一个CDG节点
     initCDGNodeFromPDT(PDT->getRootNode());
-    showSetS(setS,outs());
+
     const BasicBlock *exbb = SVFUtil::getFunExitBB(fun->getLLVMFun());
     const BasicBlock *enbb = &(fun->getLLVMFun()->front());
 
@@ -134,7 +134,6 @@ void CDG::findPathL2B(const DepenSSetTy S, vector<DTNodeTy> &P)
 void CDG::findPathA2B(DTNodeTy A, DepenSSetTy S, vector<DTNodeTy> &P)
 {
     outs()<<"Traver Dom_node_value:: "<<A;//DEBUG
-//    A->getBlock()->printAsOperand(outs(),false);//DEBUG
     P.push_back(A);
     for (auto it = S.begin(), ie = S.end(); it != ie; it++)
     {
@@ -426,7 +425,6 @@ void ControlDependenceGraph::PostOrderTraversalPDTNode(const DomTreeNode *dtn)
     // 先遍历处理子节点
     for (auto iter = dtn->begin(); iter != dtn->end(); iter++)
         PostOrderTraversalPDTNode(*iter);
-    outs()<<"Traver Dom_node_value:: "<<dtn->getBlock()->getName()<<"\n";//DEBUG
     // 最后处理根节点
     // 获取当前节点的 CDSet
     NodeID nodeID = this->getNodeIDFromBB(dtn->getBlock());
@@ -526,7 +524,12 @@ void CDG::showSetS(DepenSSetTy &S,llvm::raw_ostream &O){
         O<<"setS_A:"<<" "<<(*it)->A->getBlock()->getName();
         O<<"\t,B:"<<" "<<(*it)->B->getBlock()->getName();
         O<<"\t,L:"<<" "<<(*it)->L->getBlock()->getName();
-        O<<"\t,TF:"<<(*it)->TF<<"\n";
+        if((*it)->TF==CDGEdge::LabelType::T)
+            O<<"\t,TF: T"<<"\n";
+        else if((*it)->TF==CDGEdge::LabelType::F)
+            O<<"\t,TF: F"<<"\n";
+        else
+            O<<"\t,TF: None"<<"\n";
     }
 }
 
@@ -670,37 +673,39 @@ struct DOTGraphTraits<CDG *> : public DefaultDOTGraphTraits {
         return "";
     }
 //
-//    template<class EdgeIter>
-//    static std::string getEdgeAttributes(PAGNode*, EdgeIter EI, PAG*)
-//    {
-//        const PAGEdge* edge = *(EI.getCurrent());
-//        assert(edge && "No edge found!!");
-//        if (SVFUtil::isa<AddrPE>(edge))
-//        {
-//            return "color=green";
-//        }
-//        else
-//        {
-//            assert(0 && "No such kind edge!!");
-//        }
-//    }
+    template<class EdgeIter>
+    static std::string getEdgeAttributes(CDGNode*, EdgeIter EI, CDG*)
+    {
+        const CDGEdge* edge = *(EI.getCurrent());
+        assert(edge && "No edge found!!");
+        if(edge->getEdgeKind()==CDGEdge::LabelType::T)
+        {
+            return "collor=blue";
+        }
+        else if(edge->getEdgeKind()==CDGEdge::LabelType::T)
+        {
+            return "collor=red";
+        }
+        return "";
+    }
 //
-//    template<class EdgeIter>
-//    static std::string getEdgeSourceLabel(PAGNode*, EdgeIter EI)
-//    {
-//        const PAGEdge* edge = *(EI.getCurrent());
-//        assert(edge && "No edge found!!");
-//        if(const CallPE* calledge = SVFUtil::dyn_cast<CallPE>(edge))
-//        {
-//            const Instruction* callInst= calledge->getCallSite()->getCallSite();
-//            return SVFUtil::getSourceLoc(callInst);
-//        }
-//        else if(const RetPE* retedge = SVFUtil::dyn_cast<RetPE>(edge))
-//        {
-//            const Instruction* callInst= retedge->getCallSite()->getCallSite();
-//            return SVFUtil::getSourceLoc(callInst);
-//        }
-//        return "";
-//    }
+    template<class EdgeIter>
+    static std::string getEdgeSourceLabel(CDGNode*, EdgeIter EI)
+    {
+        const CDGEdge* edge = *(EI.getCurrent());
+        assert(edge && "No edge found!!");
+
+        std::string str;
+        raw_string_ostream rawstr(str);
+        if(edge->getEdgeKind()==CDGEdge::LabelType::T)
+        {
+            rawstr<<"T";
+        }
+        else if(edge->getEdgeKind()==CDGEdge::LabelType::F)
+        {
+            rawstr<<"F";
+        }
+        return rawstr.str();
+    }
 };
 } // End namespace llvm
