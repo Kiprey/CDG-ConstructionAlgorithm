@@ -32,7 +32,6 @@ void CDG::buildPDT(const SVFFunction *fun,DepenSSetTy &setS) {
 void ControlDependenceGraph::initCDG(const SVFFunction *fun)
 {
     DepenSSetTy setS;
-    setS.clear();
     llvm::BasicBlock* entryBB=&(fun->getLLVMFun()->front());
     llvm::BasicBlock* exitBB=&(fun->getLLVMFun()->back());
     ///@queation 一旦封装到函数里，SetS就会莫名改变?
@@ -46,7 +45,7 @@ void ControlDependenceGraph::initCDG(const SVFFunction *fun)
     PDT->print(outs());
 
     DepenTupleTy ABLT = {dnA,dnB,dnL, CDGEdge::LabelType::T};
-    setS.insert(&ABLT);
+    setS.insert(ABLT);
     ///@warning 注意exit节点存储的的基本快指针为Null
     //为每个PDT节点初始化一个CDG节点
     initCDGNodeFromPDT(PDT->getRootNode());
@@ -80,9 +79,11 @@ void CDG::findSSet(ICFGNode *iNode, Set<const ICFGNode *> &visited, DepenSSetTy 
     if (   !(iNode->hasOutgoingEdge()  )|| SVFUtil::dyn_cast<FunExitBlockNode>(iNode))
         return;
     const BranchInst* br = SVFUtil::dyn_cast<BranchInst>(&(iNode->getBB()->back()));
-    ///@warning注意这里的判断条件，即便只有一个出边，br也可能不为空
-    if ( !(br&&br->isConditional()) || icfgOutIntraEdgeNum(iNode)==1 || SVFUtil::isa<FunEntryBlockNode>(iNode))
+    ///@warning注意这里的判断条件，即便只有一个出边，br也可能不为空!(br&&br->isConditional()) ||icfgOutIntraEdgeNum(iNode)==1
+    ///大于1，且没有br是可以的，比如switch
+    if ( icfgOutIntraEdgeNum(iNode)==1 ||SVFUtil::isa<FunEntryBlockNode>(iNode))
     {
+//        outs()<<"hasno cond::"<<iNode->getId()<<"\n";//DEBUG
         for (ICFGEdge *edge : iNode->getOutEdges())
             if(SVFUtil::isa<IntraCFGEdge>(edge))//only handle intraCFGedge
                 findSSet(edge->getDstNode(), visited, setS);
@@ -105,9 +106,10 @@ void CDG::findSSet(ICFGNode *iNode, Set<const ICFGNode *> &visited, DepenSSetTy 
         DTNodeTy dnB = PDT->getNode(bbB);
         if (!PDT->properlyDominates(dnB, dnA))
         { //Return true iff B dominates A and A != B.
+//            outs()<<"insert::"<<intraEdge->getDstNode()->getId()<<"\n";//DEBUG
             DTNodeTy dnL = PDT->getNode(PDT->findNearestCommonDominator(bbA, bbB));
             DepenTupleTy ABLT = {dnA, dnB, dnL, TF};
-            setS.insert(&ABLT);
+            setS.insert(ABLT);
         }
     }
 }
@@ -127,19 +129,19 @@ void CDG::buildinitCDG(DepenSSetTy S)
  * @param S S集合
  * @param P 记录路径
  */
-void CDG::findPathL2B(const DepenSSetTy S, vector<DTNodeTy> &P)
+void CDG::findPathL2B(DepenSSetTy &S, vector<DTNodeTy> &P)
 {
     outs()<<"Traversing the DomTree From Root"<<"\n";//DEBUG
     findPathA2B(PDT->getRootNode(), S, P);
 }
 
-void CDG::findPathA2B(DTNodeTy A, DepenSSetTy S, vector<DTNodeTy> &P)
+void CDG::findPathA2B(DTNodeTy A,DepenSSetTy &S, vector<DTNodeTy> &P)
 {
     outs()<<"Traver Dom_node_value:: "<<A;//DEBUG
     P.push_back(A);
     for (auto it = S.begin(), ie = S.end(); it != ie; it++)
     {
-        if (A == (*it)->B)
+        if (A == it->B)
         {
             outs()<<"Find B!!"<<"\n";//DEBUG
             handleDepenVec(*it, P);
@@ -164,10 +166,10 @@ void CDG::initCDGNodeFromPDT(DTNodeTy dtNode) {
  * @param LB
  * @param P
  */
-void CDG::handleDepenVec(DepenTupleTy *LB, vector<DTNodeTy> &P)
+void CDG::handleDepenVec(DepenTupleTy LB, vector<DTNodeTy> &P)
 {
-    DTNodeTy L = LB->L, B = LB->B, A = LB->A;
-    NodeID TF = LB->TF;
+    DTNodeTy L = LB.L, B = LB.B, A = LB.A;
+    NodeID TF = LB.TF;
     auto pi = std::find(P.begin(), P.end(), L);        //find L
     if (pi == P.end())
         return;
@@ -523,19 +525,19 @@ void CDG::dump(const std::string& file){
 
 void CDG::showSetS(DepenSSetTy &S,llvm::raw_ostream &O){
     for (auto it=S.begin(),ie=S.end();it!=ie;++it){
-        assert((*it)->A->getBlock()!=nullptr);
-        assert((*it)->B->getBlock()!=nullptr);
+        assert(it->A->getBlock()!=nullptr);
+        assert(it->B->getBlock()!=nullptr);
         O<<"setS_A:"<<" ";
-        (*it)->A->getBlock()->printAsOperand(O,false);
-        O<<"\t,B:"<<" "<<(*it)->B->getBlock()->getName();
+        it->A->getBlock()->printAsOperand(O,false);
+        O<<"\t,B:"<<" "<<it->B->getBlock()->getName();
         O<<"\t,L:"<<" ";
-        if ((*it)->L->getBlock())
-            (*it)->L->getBlock()->printAsOperand(O, false);
+        if (it->L->getBlock())
+            it->L->getBlock()->printAsOperand(O, false);
         else
             O << " <<exit node>>";
-        if((*it)->TF==0)
+        if(it->TF==0)
             O<<"\t,TF: T"<<"\n";
-        else if((*it)->TF==1)
+        else if(it->TF==1)
             O<<"\t,TF: F"<<"\n";
         else
             O<<"\t,TF: None"<<"\n";

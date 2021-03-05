@@ -2,7 +2,7 @@
 #define CDG_H
 
 #include <map>
-
+#include <set>
 #include "Graphs/GenericGraph.h"
 #include "Graphs/SVFG.h"
 #include "CDGEdge.h"
@@ -55,14 +55,16 @@ public:
     typedef CDGNodeIDToNodeMapTy::const_iterator const_iterator;
 
     typedef DomTreeNodeBase<llvm::BasicBlock> *DTNodeTy;
-    typedef struct
-    {
+    typedef struct DepenTuple{
         DTNodeTy A;
         DTNodeTy B;
         DTNodeTy L;
         NodeID TF;
-    } DepenTupleTy;
-    typedef Set<DepenTupleTy *> DepenSSetTy;
+        friend bool operator<(const  DepenTuple&n1, const DepenTuple &n2) {
+            return n1.A->getLevel() >= n2.A->getLevel();
+        }
+    }DepenTupleTy;
+    typedef set<DepenTupleTy> DepenSSetTy;
     typedef vector<DTNodeTy> DepenVecTy;
 
 public:
@@ -74,9 +76,9 @@ public:
     void findSSet(ICFGNode *entryNode, Set<const ICFGNode *> &visited, DepenSSetTy &setS);
     void buildinitCDG(DepenSSetTy S);
     u32_t icfgOutIntraEdgeNum(ICFGNode *iNode);
-    void findPathL2B(DepenSSetTy S, vector<DTNodeTy> &P);
-    void findPathA2B(DTNodeTy A, DepenSSetTy S, vector<DTNodeTy> &P);
-    void handleDepenVec(DepenTupleTy *LB, vector<DTNodeTy> &P);
+    void findPathL2B(DepenSSetTy &S, vector<DTNodeTy> &P);
+    void findPathA2B(DTNodeTy A, DepenSSetTy &S, vector<DTNodeTy> &P);
+    void handleDepenVec(DepenTupleTy LB, vector<DTNodeTy> &P);
     CDGEdge::LabelType lable2bool(NodeID TF);
 
     void addCDGEdge(CDGNode *s, CDGNode *d, CDGEdge::LabelType l);
