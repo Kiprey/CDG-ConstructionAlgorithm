@@ -47,7 +47,6 @@ void ControlDependenceGraph::initCDG(const SVFFunction *fun)
 
     DepenTupleTy ABLT = {dnA,dnB,dnL, CDGEdge::LabelType::T};
     setS.insert(&ABLT);
-
     ///@warning 注意exit节点存储的的基本快指针为Null
     //为每个PDT节点初始化一个CDG节点
     initCDGNodeFromPDT(PDT->getRootNode());
@@ -74,21 +73,24 @@ void ControlDependenceGraph::initCDG(const SVFFunction *fun)
  */
 void CDG::findSSet(ICFGNode *iNode, Set<const ICFGNode *> &visited, DepenSSetTy &setS)
 {
-//    outs()<<"node_id::"<<iNode->getId()<<"node_outedge_num:"<<icfgOutIntraEdgeNum(iNode) <<"\n";//DEBUG
-    if (visited.find(iNode) == visited.end())
-        visited.insert(iNode);
-    else
+//    outs()<<"node_id::"<<iNode->getId()<<"\n";//DEBUG
+    if (visited.find(iNode) != visited.end())
         return;
-    if (SVFUtil::dyn_cast<FunExitBlockNode>(iNode)&& !SVFUtil::dyn_cast<IntraBlockNode>(iNode))
+    visited.insert(iNode);
+    if (   !(iNode->hasOutgoingEdge()  )|| SVFUtil::dyn_cast<FunExitBlockNode>(iNode))
         return;
-    if (icfgOutIntraEdgeNum(iNode) != 2)
+    const BranchInst* br = SVFUtil::dyn_cast<BranchInst>(&(iNode->getBB()->back()));
+    ///@warning注意这里的判断条件，即便只有一个出边，br也可能不为空
+    if ( !(br&&br->isConditional()) || icfgOutIntraEdgeNum(iNode)==1 || SVFUtil::isa<FunEntryBlockNode>(iNode))
     {
         for (ICFGEdge *edge : iNode->getOutEdges())
-            findSSet(edge->getDstNode(), visited, setS);
+            if(SVFUtil::isa<IntraCFGEdge>(edge))//only handle intraCFGedge
+                findSSet(edge->getDstNode(), visited, setS);
         return;
     }
     //handle edges with condition to get S
     //traverse posdomtree to get P
+    //handle condition
     for (ICFGEdge* edge : iNode->getOutEdges())
     {
         IntraCFGEdge *intraEdge = SVFUtil::dyn_cast<IntraCFGEdge>(edge);
@@ -521,7 +523,10 @@ void CDG::dump(const std::string& file){
 
 void CDG::showSetS(DepenSSetTy &S,llvm::raw_ostream &O){
     for (auto it=S.begin(),ie=S.end();it!=ie;++it){
-        O<<"setS_A:"<<" "<<(*it)->A->getBlock()->getName();
+        assert((*it)->A->getBlock()!=nullptr);
+        assert((*it)->B->getBlock()!=nullptr);
+        O<<"setS_A:"<<" ";
+        (*it)->A->getBlock()->printAsOperand(O,false);
         O<<"\t,B:"<<" "<<(*it)->B->getBlock()->getName();
         O<<"\t,L:"<<" ";
         if ((*it)->L->getBlock())

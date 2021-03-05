@@ -39,7 +39,7 @@ int main(int argc, char ** argv) {
     NodeID n=0;
     for (auto it=svfModule->begin(),ie=svfModule->end();it!=ie;it++,n++){
         outs()<<"FuncName::"<<(*it)->getName()<<"\n";
-        if(n==4){
+        if(n==0){
             fun=*it;
             break;
         }
