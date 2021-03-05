@@ -10,21 +10,19 @@ ControlDependenceGraph::ControlDependenceGraph(ICFG* icfg):icfg(icfg),totalCDGNo
  * 构建后支配树
  */
 void CDG::buildPDT(const SVFFunction *fun,DepenSSetTy &setS) {
-    llvm::BasicBlock* entryBB=&(fun->getLLVMFun()->front());
-    llvm::BasicBlock* exitBB=&(fun->getLLVMFun()->back());
-    PDT->recalculate(*fun->getLLVMFun());
-    BasicBlock *bb=llvm::BasicBlock ::Create(entryBB->getContext(), "before_entry", fun->getLLVMFun(),
-                                             exitBB);
-
-    DTNodeTy dnA=PDT->addNewBlock(bb,exitBB);
-    DTNodeTy dnB=PDT->getNode(entryBB);
-    DTNodeTy dnL=PDT->getNode(exitBB);
-    PDT->print(outs());
-
-    exitBB->getName();
-    DepenTupleTy ABLT = {dnA,dnB,dnL, CDGEdge::LabelType::T};
-    setS.insert(&ABLT);
-    showSetS(setS,outs());
+//    llvm::BasicBlock* entryBB=&(fun->getLLVMFun()->front());
+//    llvm::BasicBlock* exitBB=&(fun->getLLVMFun()->back());
+//    PDT->recalculate(*fun->getLLVMFun());
+//    BasicBlock *before_entry=llvm::BasicBlock ::Create(entryBB->getContext(), "before_entry", fun->getLLVMFun(),
+//                                                       exitBB);
+//
+//    DTNodeTy dnA=PDT->addNewBlock(before_entry,exitBB);
+//    DTNodeTy dnB=PDT->getNode(entryBB);
+//    DTNodeTy dnL=PDT->getRootNode();
+//    PDT->print(outs());
+//
+//    DepenTupleTy ABLT = {dnA,dnB,dnL, CDGEdge::LabelType::T};
+//    setS.insert(&ABLT);
 }
 
 /*!
@@ -39,16 +37,18 @@ void ControlDependenceGraph::initCDG(const SVFFunction *fun)
     llvm::BasicBlock* exitBB=&(fun->getLLVMFun()->back());
     ///@queation 一旦封装到函数里，SetS就会莫名改变?
     PDT->recalculate(*fun->getLLVMFun());
-    BasicBlock *bb=llvm::BasicBlock ::Create(entryBB->getContext(), "before_entry", fun->getLLVMFun(),
+    BasicBlock *before_entry=llvm::BasicBlock ::Create(entryBB->getContext(), "before_entry", fun->getLLVMFun(),
                                              exitBB);
 
-    DTNodeTy dnA=PDT->addNewBlock(bb,exitBB);
+    DTNodeTy dnA=PDT->addNewBlock(before_entry,exitBB);
     DTNodeTy dnB=PDT->getNode(entryBB);
-    DTNodeTy dnL=PDT->getNode(exitBB);
+    DTNodeTy dnL=PDT->getRootNode();
     PDT->print(outs());
 
     DepenTupleTy ABLT = {dnA,dnB,dnL, CDGEdge::LabelType::T};
     setS.insert(&ABLT);
+
+    ///@warning 注意exit节点存储的的基本快指针为Null
     //为每个PDT节点初始化一个CDG节点
     initCDGNodeFromPDT(PDT->getRootNode());
 
@@ -205,9 +205,9 @@ CDGEdge::LabelType CDG::lable2bool(NodeID TF)
     switch (TF)
     {
     case 0:
-        return CDGEdge::LabelType::F;
-    case 1:
         return CDGEdge::LabelType::T;
+    case 1:
+        return CDGEdge::LabelType::F;
     default:
         return CDGEdge::LabelType::None;
     }
@@ -403,8 +403,8 @@ void ControlDependenceGraph::addRegionNodeToCDG()
             {
                 CDGEdge *edge = *(edgeIter++);
                 CDGNode *anotherRegionNode = edge->getDstNode();
-                // 先加边 anotherRegionNode <-- none -- regionNode 的边
-                CDGEdge *region2anotherRegion = new CDGEdge(regionNode, anotherRegionNode, (CDGEdge::LabelType)edge->getEdgeKind());
+                // 先加边 anotherRegionNode <-- none -- regionNode 的边,标签应为空而不是(CDGEdge::LabelType)edge->getEdgeKind()
+                CDGEdge *region2anotherRegion = new CDGEdge(regionNode, anotherRegionNode, CDGEdge::LabelType::None);
                 regionNode->addOutgoingEdge(region2anotherRegion);
                 anotherRegionNode->addIncomingEdge(region2anotherRegion);
                 // 再删除 anotherRegionNode <-- edge -- node 的边, 将 edge 从原先的图中删除
@@ -523,10 +523,14 @@ void CDG::showSetS(DepenSSetTy &S,llvm::raw_ostream &O){
     for (auto it=S.begin(),ie=S.end();it!=ie;++it){
         O<<"setS_A:"<<" "<<(*it)->A->getBlock()->getName();
         O<<"\t,B:"<<" "<<(*it)->B->getBlock()->getName();
-        O<<"\t,L:"<<" "<<(*it)->L->getBlock()->getName();
-        if((*it)->TF==CDGEdge::LabelType::T)
+        O<<"\t,L:"<<" ";
+        if ((*it)->L->getBlock())
+            (*it)->L->getBlock()->printAsOperand(O, false);
+        else
+            O << " <<exit node>>";
+        if((*it)->TF==0)
             O<<"\t,TF: T"<<"\n";
-        else if((*it)->TF==CDGEdge::LabelType::F)
+        else if((*it)->TF==1)
             O<<"\t,TF: F"<<"\n";
         else
             O<<"\t,TF: None"<<"\n";
