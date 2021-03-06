@@ -1,7 +1,0 @@
-# 忽略当前文件夹下的所有文件
-*
-# 忽略的文件中，排除以下文件类型
-!test1
-!test2
-!test_mulret
-!CMakeLists.txt

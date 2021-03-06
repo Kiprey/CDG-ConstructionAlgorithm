@@ -1,0 +1,5 @@
+digraph "Dominator tree for 'main' function" {
+	label="Dominator tree for 'main' function";
+
+	Node0x1e1de90 [shape=record,label="{entry:\l  %retval = alloca i32, align 4\l  %num = alloca i32, align 4\l  store i32 0, i32* %retval, align 4\l  %call = call dereferenceable(272) %\"class.std::basic_ostream\"*\l... @_ZStlsISt11char_traitsIcEERSt13basic_ostreamIcT_ES5_PKc(%\"class.std::basic_os\l...tream\"* dereferenceable(272) @_ZSt4cout, i8* getelementptr inbounds ([30 x\l... i8], [30 x i8]* @.str.4, i64 0, i64 0))\l  %call1 = call i32 @rand() #3\l  %rem = srem i32 %call1, 100\l  store i32 %rem, i32* %num, align 4\l  %0 = load i32, i32* %num, align 4\l  call void @_Z5guessi(i32 %0)\l  ret i32 0\l}"];
+}

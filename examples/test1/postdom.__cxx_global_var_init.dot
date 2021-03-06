@@ -1,0 +1,7 @@
+digraph "Post dominator tree for '__cxx_global_var_init' function" {
+	label="Post dominator tree for '__cxx_global_var_init' function";
+
+	Node0x27828d0 [shape=record,label="{Post dominance root node}"];
+	Node0x27828d0 -> Node0x27836e0;
+	Node0x27836e0 [shape=record,label="{entry:\l  call void @_ZNSt8ios_base4InitC1Ev(%\"class.std::ios_base::Init\"*\l... @_ZStL8__ioinit)\l  %0 = call i32 @__cxa_atexit(void (i8*)* bitcast (void\l... (%\"class.std::ios_base::Init\"*)* @_ZNSt8ios_base4InitD1Ev to void (i8*)*),\l... i8* getelementptr inbounds (%\"class.std::ios_base::Init\",\l... %\"class.std::ios_base::Init\"* @_ZStL8__ioinit, i32 0, i32 0), i8*\l... @__dso_handle) #3\l  ret void\l}"];
+}

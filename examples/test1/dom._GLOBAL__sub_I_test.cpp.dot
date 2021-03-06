@@ -1,0 +1,5 @@
+digraph "Dominator tree for '_GLOBAL__sub_I_test.cpp' function" {
+	label="Dominator tree for '_GLOBAL__sub_I_test.cpp' function";
+
+	Node0x1e6fa90 [shape=record,label="{entry:\l  call void @__cxx_global_var_init()\l  ret void\l}"];
+}

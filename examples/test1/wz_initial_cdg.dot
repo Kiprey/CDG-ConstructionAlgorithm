@@ -1,0 +1,28 @@
+digraph "CDG" {
+	label="CDG";
+
+	Node0xeafdc0 [shape=record,color=blue,label="{C: 10 \n[%before_entry]\n|{<s0>T|<s1>T|<s2>T|<s3>T|<s4>T}}"];
+	Node0xeafdc0:s0 -> Node0xeaa060[collor=blue];
+	Node0xeafdc0:s1 -> Node0xeaf6c0[collor=blue];
+	Node0xeafdc0:s2 -> Node0xeaf7a0[collor=blue];
+	Node0xeafdc0:s3 -> Node0xeaf880[collor=blue];
+	Node0xeafdc0:s4 -> Node0xeaf960[collor=blue];
+	Node0xeafce0 [shape=record,color=blue,label="{C: 9 \n[%if.then4]\n}"];
+	Node0xeafc00 [shape=record,color=blue,label="{C: 8 \n[%if.end]\n}"];
+	Node0xeafb20 [shape=record,color=blue,label="{C: 7 \n[%if.then]\n}"];
+	Node0xeafa40 [shape=record,color=blue,label="{C: 6 \n[%if.end8]\n}"];
+	Node0xeaf960 [shape=record,color=blue,label="{C: 5 \n[%entry]\n}"];
+	Node0xeaf880 [shape=record,color=blue,label="{C: 4 \n[%for.cond]\n|{<s0>T|<s1>T|<s2>T}}"];
+	Node0xeaf880:s0 -> Node0xeaf880[collor=blue];
+	Node0xeaf880:s1 -> Node0xeafa40[collor=blue];
+	Node0xeaf880:s2 -> Node0xeafb20[collor=blue];
+	Node0xeaf7a0 [shape=record,color=blue,label="{C: 3 \n[%if.else]\n|{<s0>T|<s1>T|<s2>T|<s3>T|<s4>T}}"];
+	Node0xeaf7a0:s0 -> Node0xeaf7a0[collor=blue];
+	Node0xeaf7a0:s1 -> Node0xeaf880[collor=blue];
+	Node0xeaf7a0:s2 -> Node0xeafa40[collor=blue];
+	Node0xeaf7a0:s3 -> Node0xeafc00[collor=blue];
+	Node0xeaf7a0:s4 -> Node0xeafce0[collor=blue];
+	Node0xeaf6c0 [shape=record,color=blue,label="{C: 2 \n[%if.else6]\n}"];
+	Node0xeaa060 [shape=record,color=blue,label="{C: 1 \n[%for.end]\n}"];
+	Node0xea9fe0 [shape=record,color=blue,label="{C: 0 \n}"];
+}

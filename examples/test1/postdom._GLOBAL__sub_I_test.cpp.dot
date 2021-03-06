@@ -1,0 +1,7 @@
+digraph "Post dominator tree for '_GLOBAL__sub_I_test.cpp' function" {
+	label="Post dominator tree for '_GLOBAL__sub_I_test.cpp' function";
+
+	Node0x274ee60 [shape=record,label="{Post dominance root node}"];
+	Node0x274ee60 -> Node0x274f3b0;
+	Node0x274f3b0 [shape=record,label="{entry:\l  call void @__cxx_global_var_init()\l  ret void\l}"];
+}
