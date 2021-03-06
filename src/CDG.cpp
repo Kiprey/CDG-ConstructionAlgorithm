@@ -34,7 +34,7 @@ void ControlDependenceGraph::initCDG(const SVFFunction *fun)
     DepenSSetTy setS;
     llvm::BasicBlock* entryBB=&(fun->getLLVMFun()->front());
     llvm::BasicBlock* exitBB=&(fun->getLLVMFun()->back());
-    ///@queation 一旦封装到函数里，SetS就会莫名改变?
+    ///@question 一旦封装到函数里，SetS就会莫名改变?
     PDT->recalculate(*fun->getLLVMFun());
     BasicBlock *before_entry=llvm::BasicBlock ::Create(entryBB->getContext(), "before_entry", fun->getLLVMFun(),
                                              exitBB);
