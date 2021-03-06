@@ -10,19 +10,18 @@ ControlDependenceGraph::ControlDependenceGraph(ICFG* icfg):icfg(icfg),totalCDGNo
  * 构建后支配树
  */
 void CDG::buildPDT(const SVFFunction *fun,DepenSSetTy &setS) {
-//    llvm::BasicBlock* entryBB=&(fun->getLLVMFun()->front());
-//    llvm::BasicBlock* exitBB=&(fun->getLLVMFun()->back());
-//    PDT->recalculate(*fun->getLLVMFun());
-//    BasicBlock *before_entry=llvm::BasicBlock ::Create(entryBB->getContext(), "before_entry", fun->getLLVMFun(),
-//                                                       exitBB);
-//
-//    DTNodeTy dnA=PDT->addNewBlock(before_entry,exitBB);
-//    DTNodeTy dnB=PDT->getNode(entryBB);
-//    DTNodeTy dnL=PDT->getRootNode();
-//    PDT->print(outs());
-//
-//    DepenTupleTy ABLT = {dnA,dnB,dnL, CDGEdge::LabelType::T};
-//    setS.insert(&ABLT);
+    llvm::BasicBlock* entryBB=&(fun->getLLVMFun()->front());
+    llvm::BasicBlock* exitBB=&(fun->getLLVMFun()->back());
+    PDT->recalculate(*fun->getLLVMFun());
+    BasicBlock *before_entry=llvm::BasicBlock ::Create(entryBB->getContext(), "before_entry", fun->getLLVMFun(),
+                                                       exitBB);
+
+    DTNodeTy dnA=PDT->addNewBlock(before_entry,exitBB);
+    DTNodeTy dnB=PDT->getNode(entryBB);
+    DTNodeTy dnL=PDT->getRootNode();
+    PDT->print(outs());
+    DepenTupleTy ABLT = {dnA,dnB,dnL, CDGEdge::LabelType::T};
+    setS.insert(ABLT);
 }
 
 /*!
@@ -32,20 +31,8 @@ void CDG::buildPDT(const SVFFunction *fun,DepenSSetTy &setS) {
 void ControlDependenceGraph::initCDG(const SVFFunction *fun)
 {
     DepenSSetTy setS;
-    llvm::BasicBlock* entryBB=&(fun->getLLVMFun()->front());
-    llvm::BasicBlock* exitBB=&(fun->getLLVMFun()->back());
-    ///@question 一旦封装到函数里，SetS就会莫名改变?
-    PDT->recalculate(*fun->getLLVMFun());
-    BasicBlock *before_entry=llvm::BasicBlock ::Create(entryBB->getContext(), "before_entry", fun->getLLVMFun(),
-                                             exitBB);
+    buildPDT(fun,setS);
 
-    DTNodeTy dnA=PDT->addNewBlock(before_entry,exitBB);
-    DTNodeTy dnB=PDT->getNode(entryBB);
-    DTNodeTy dnL=PDT->getRootNode();
-    PDT->print(outs());
-
-    DepenTupleTy ABLT = {dnA,dnB,dnL, CDGEdge::LabelType::T};
-    setS.insert(ABLT);
     ///@warning 注意exit节点存储的的基本快指针为Null
     //为每个PDT节点初始化一个CDG节点
     initCDGNodeFromPDT(PDT->getRootNode());
