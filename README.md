@@ -17,3 +17,9 @@
   npm i svf-lib
   cmake -DCMAKE_BUILD_TYPE=Debug . && make
   ```
+
+- 执行以下脚本以生成 example 中调试所需要的 bc、ll、CFG、ICFG 以及 PostDominator Tree
+
+  ```bash
+  ./examples/print_test_graph.sh
+  ```
