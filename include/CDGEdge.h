@@ -17,10 +17,10 @@ typedef GenericEdge<ControlDependenceNode> GenericCDEdgeTy;
 class ControlDependenceEdge : public GenericCDEdgeTy
 {
 public:
-    typedef GenericNode<CDGNode,CDGEdge>::GEdgeSetTy CDGEdgeSetTy;
+    typedef GenericNode<CDGNode, CDGEdge>::GEdgeSetTy CDGEdgeSetTy;
     typedef CDGEdge::CDGEdgeSetTy::iterator iterator;
     typedef CDGEdge::CDGEdgeSetTy::const_iterator const_iterator;
-    
+
     /**
      *  由于受到 switch 语句的影响，Label 可以有多个类型（不只是 T/F/None)
      *  还包括了 switch 中的 各个分支 value 以及 Default
@@ -35,10 +35,10 @@ public:
     ControlDependenceEdge(ControlDependenceNode *s,
                           ControlDependenceNode *d,
                           LabelType k = LabelType_None);
-    LabelType getLabel() const {
+    LabelType getLabel() const
+    {
         return label;
     };
-
 };
 
 #endif //CDG_CONSTRUCT_CDGEDGE_H

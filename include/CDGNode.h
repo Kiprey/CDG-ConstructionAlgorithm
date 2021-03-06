@@ -17,7 +17,7 @@ public:
         ControlNode,
         RegionNode
     };
-    ControlDependenceNode(NodeID i,NodeType ty );
+    ControlDependenceNode(NodeID i, NodeType ty);
     void setBasicBlock(BasicBlock *bb);
     BasicBlock *getBasicBlock();
 
@@ -29,8 +29,8 @@ public:
         return o;
     }
 
-
     virtual const std::string toString() const;
+
 private:
     BasicBlock *_bb;
 };
@@ -38,8 +38,7 @@ private:
 class ControlCDGNode : public CDGNode
 {
 public:
-    ControlCDGNode(NodeID id,BasicBlock *bb);
-
+    ControlCDGNode(NodeID id, BasicBlock *bb);
 
     //@}
     /// Methods for support type inquiry through isa, cast, and dyn_cast:
@@ -60,6 +59,7 @@ public:
     //@}
 
     virtual const std::string toString() const;
+
 private:
 };
 
@@ -68,8 +68,6 @@ class RegionCDGNode : public CDGNode
 public:
     RegionCDGNode(NodeID id);
 
-
-
     //@}
     /// Methods for support type inquiry through isa, cast, and dyn_cast:
     //@{
@@ -89,6 +87,7 @@ public:
     //@}
 
     virtual const std::string toString() const;
+
 private:
 };
 

@@ -48,31 +48,32 @@ private:
 class ControlDependenceGraph : public GenericGraph<ControlDependenceNode, ControlDependenceEdge>
 {
 public:
-
     typedef Map<NodeID, CDGNode *> CDGNodeIDToNodeMapTy;
     typedef CDGEdge::CDGEdgeSetTy CDGEdgeSetTy;
     typedef CDGNodeIDToNodeMapTy::iterator iterator;
     typedef CDGNodeIDToNodeMapTy::const_iterator const_iterator;
 
     typedef DomTreeNodeBase<llvm::BasicBlock> *DTNodeTy;
-    typedef struct DepenTuple{
+    typedef struct DepenTuple
+    {
         DTNodeTy A;
         DTNodeTy B;
         DTNodeTy L;
         int label;
-        friend bool operator<(const  DepenTuple&n1, const DepenTuple &n2) {
+        friend bool operator<(const DepenTuple &n1, const DepenTuple &n2)
+        {
             return n1.A->getLevel() >= n2.A->getLevel();
         }
-    }DepenTupleTy;
+    } DepenTupleTy;
     typedef set<DepenTupleTy> DepenSSetTy;
     typedef vector<DTNodeTy> DepenVecTy;
 
 public:
-    ControlDependenceGraph(ICFG* icfg);
+    ControlDependenceGraph(ICFG *icfg);
 
-    void buildPDT(const SVFFunction *fun,DepenSSetTy &setS);
-    void initCDG(const SVFFunction *fun); //construct initial CDG
-    void initCDGNodeFromPDT(DTNodeTy dtNode);//初始化一个节点
+    void buildPDT(const SVFFunction *fun, DepenSSetTy &setS);
+    void initCDG(const SVFFunction *fun);     //construct initial CDG
+    void initCDGNodeFromPDT(DTNodeTy dtNode); //初始化一个节点
     void findSSet(ICFGNode *entryNode, Set<const ICFGNode *> &visited, DepenSSetTy &setS);
     void buildinitCDG(DepenSSetTy S);
     u32_t icfgOutIntraEdgeNum(ICFGNode *iNode);
@@ -81,24 +82,25 @@ public:
     void handleDepenVec(DepenTupleTy LB, vector<DTNodeTy> &P);
 
     void addCDGEdge(CDGNode *s, CDGNode *d, CDGEdge::LabelType l);
-    void removeCDGEdge(CDGEdge * edge);
+    void removeCDGEdge(CDGEdge *edge);
 
     inline CDGNode *getCDGNode(NodeID id);
     inline bool hasCDGNode(NodeID id);
     inline void removeCDGNode(NodeType *node);
     NodeID getNodeIDFromBB(BasicBlock *bb);
 
-    void showSetS(DepenSSetTy &S,llvm::raw_ostream &O);
-    void showCDMap(CDMapTy CD,llvm::raw_ostream &O);
+    void showSetS(DepenSSetTy &S, llvm::raw_ostream &O);
+    void showCDMap(CDMapTy CD, llvm::raw_ostream &O);
     /// Dump graph into dot file
-    void dump(const std::string& file);
+    void dump(const std::string &file);
 
     NodeID totalCDGNode;
+
 private:
     map<BasicBlock *, NodeID> _bb2CDGNodeID;
-    PostDominatorTree *PDT ;
+    PostDominatorTree *PDT;
     CDMapTy CDMap;
-    ICFG* icfg;
+    ICFG *icfg;
     inline void addCDGNode(NodeType *node);
     inline ControlCDGNode *addControlCDGNode(BasicBlock *nbb);
     inline RegionCDGNode *addRegionCDGNode();
@@ -112,20 +114,22 @@ namespace llvm
  * GraphTraits specializations for generic graph algorithms.
  * Provide graph traits for traversing from a constraint node using standard graph traversals.
  */
-    template<> struct GraphTraits<CDGNode*> : public GraphTraits<SVF::GenericNode<CDGNode,CDGEdge>*  >
-    {
-    };
+template <>
+struct GraphTraits<CDGNode *> : public GraphTraits<SVF::GenericNode<CDGNode, CDGEdge> *>
+{
+};
 
 /// Inverse GraphTraits specializations for call graph node, it is used for inverse traversal.
-    template<>
-    struct GraphTraits<Inverse<CDGNode *> > : public GraphTraits<Inverse<SVF::GenericNode<CDGNode,CDGEdge>* > >
-    {
-    };
+template <>
+struct GraphTraits<Inverse<CDGNode *>> : public GraphTraits<Inverse<SVF::GenericNode<CDGNode, CDGEdge> *>>
+{
+};
 
-    template<> struct GraphTraits<CDG*> : public GraphTraits<SVF::GenericGraph<CDGNode,CDGEdge>* >
-    {
-        typedef CDGNode *NodeRef;
-    };
+template <>
+struct GraphTraits<CDG *> : public GraphTraits<SVF::GenericGraph<CDGNode, CDGEdge> *>
+{
+    typedef CDGNode *NodeRef;
+};
 
 } // End namespace llvm
 
