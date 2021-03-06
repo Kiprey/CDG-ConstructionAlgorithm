@@ -81,6 +81,7 @@ public:
     void handleDepenVec(DepenTupleTy LB, vector<DTNodeTy> &P);
 
     void addCDGEdge(CDGNode *s, CDGNode *d, CDGEdge::LabelType l);
+    void removeCDGEdge(CDGEdge * edge);
 
     inline CDGNode *getCDGNode(NodeID id);
     inline bool hasCDGNode(NodeID id);

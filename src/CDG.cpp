@@ -211,6 +211,12 @@ inline void ControlDependenceGraph::addCDGEdge(CDGNode *s, CDGNode *d, CDGEdge::
     bool added2 = edge->getSrcNode()->addOutgoingEdge(edge);
 }
 
+inline void ControlDependenceGraph::removeCDGEdge(CDGEdge * edge) {
+    edge->getSrcNode()->removeOutgoingEdge(edge);
+    edge->getDstNode()->removeIncomingEdge(edge);
+    delete edge;
+}
+
 inline CDGNode *ControlDependenceGraph::getCDGNode(NodeID id) {
     return getGNode(id);
 }
@@ -273,26 +279,12 @@ void ControlDependenceGraph::addRegionNodeToCDG() {
             CDGEdge *edge = *(it++);
             CDGNode *srcNode = edge->getSrcNode();
             // 先加边 regionNode <-- edge -- srcNode 的边
-            CDGEdge *src2region = new CDGEdge(srcNode, regionNode, (CDGEdge::LabelType) edge->getEdgeKind());
-            srcNode->addOutgoingEdge(src2region);
-            regionNode->addIncomingEdge(src2region);
+            addCDGEdge(srcNode, regionNode, edge->getEdgeKind());
             // 再删除 dstNode <-- edge -- srcNode 的边, 将 edge 从原先的图中删除
-            srcNode->removeOutgoingEdge(edge);
-            dstNode->removeIncomingEdge(edge);
-            /// @warning 生命周期问题：图中的所有node & edge 该在什么时候进行释放，会不会产生生命周期问题
-            delete edge;
-
-            // 2. 在修改边指向 RegionNode 的过程中，可以顺便使用 Map 将 RegionNodeID映射到对应的控制依赖集。
-//            CDSetElemTy elem(srcNode->getId(), (CDGEdge::LabelType)src2region->getEdgeKind());
-            /// @fix 这里ControlNode的CD集已经有了，不需要重复添加
-            /// @question 是否应该删除原本的CD集，将CD集中的项替换为{RNodeID,None},再添加一个R节点的CD集
-            // map 的 operator[] 在找不到 Set 时将自动创建，因此不必手动判断是否存在
-            // 控制依赖集合映射： dstNodeID -> { { srcNodeID1, edgeLable1 }， { ... }， { ... } }
-            //                 即 NodeID* -> CDSetTy
-//            CDMap[dstNode->getId()].insert(elem);
+            removeCDGEdge(edge);
         }
         // 建立 node <-- none -- RegionNode
-        CDGEdge *region2dst = new CDGEdge(regionNode, dstNode, -2);
+        CDGEdge *region2dst = new CDGEdge(regionNode, dstNode, CDGEdge::LabelType_None);
         regionNode->addOutgoingEdge(region2dst);
         dstNode->addIncomingEdge(region2dst);
 
@@ -317,6 +309,7 @@ void ControlDependenceGraph::addRegionNodeToCDG() {
     for (auto iter = nodeWorklists.begin(); iter != nodeWorklists.end(); iter++) {
         // 获取当前节点出边的labelType
         CDGNode *node = *iter;
+        /// @todo 添加对 switch 的处理
         // 这里声明数组，方便代码编写
         list<CDGEdge *> edgeTF[2];
         for (auto edgeIter = node->OutEdgeBegin(); edgeIter != node->OutEdgeEnd(); edgeIter++) {
@@ -342,24 +335,17 @@ void ControlDependenceGraph::addRegionNodeToCDG() {
             this->addGNode(regionNode->getId(), regionNode);
 
             // 建立 RegionNode <-- T/F -- node
-            CDGEdge *node2regionNode = new CDGEdge(node, regionNode,
-                                                   (i == 0 ? 0 : 1));
-            node->addOutgoingEdge(node2regionNode);
-            regionNode->addIncomingEdge(node2regionNode);
+            addCDGEdge(node, regionNode, (i == 0 ? 0 : 1));
 
             //      2. 遍历某一类型的所有边，将其删除并建立新边
-            ///@note delete后指针失效但不影响list的顺序
+            /// @note delete后指针失效但不影响list的顺序
             for (auto edgeIter = edges.begin(); edgeIter != edges.end();) {
                 CDGEdge *edge = *(edgeIter++);
                 CDGNode *anotherRegionNode = edge->getDstNode();
                 // 先加边 anotherRegionNode <-- none -- regionNode 的边,标签应为空而不是(CDGEdge::LabelType)edge->getEdgeKind()
-                CDGEdge *region2anotherRegion = new CDGEdge(regionNode, anotherRegionNode, -2);
-                regionNode->addOutgoingEdge(region2anotherRegion);
-                anotherRegionNode->addIncomingEdge(region2anotherRegion);
+                addCDGEdge(regionNode, anotherRegionNode, CDGEdge::LabelType_None);
                 // 再删除 anotherRegionNode <-- edge -- node 的边, 将 edge 从原先的图中删除
-                node->removeOutgoingEdge(edge);
-                anotherRegionNode->removeIncomingEdge(edge);
-                delete edge;
+                removeCDGEdge(edge);
             }
         }
     }
@@ -417,15 +403,11 @@ void ControlDependenceGraph::PostOrderTraversalPDTNode(const DomTreeNode *dtn) {
                 // 去 INT 中查找是否存在当前依赖对象，如果存在：
                 if (INT.find(cdElem) != INT.end()) {
                     // 从 srcNode 和 childRegionNode 中删除该边
-                    inEdge->getSrcNode()->removeOutgoingEdge(inEdge);
-                    inEdge->getDstNode()->removeIncomingEdge(inEdge);
-                    delete inEdge;
+                    removeCDGEdge(inEdge);
                 }
             }
             // 最后从当前 currRegionNode 那边连过来一条线到 childRegionNode
-            CDGEdge *newEdge = new CDGEdge(currRegionNode, childRegionNode, -2);
-            currRegionNode->addOutgoingEdge(newEdge);
-            childRegionNode->addIncomingEdge(newEdge);
+            addCDGEdge(currRegionNode, childRegionNode, CDGEdge::LabelType_None);
         }
 
             //  c. 如果子节点中所有的控制依赖项 与 INT 相等，即 ChildCD \in ParentCD,
@@ -442,15 +424,11 @@ void ControlDependenceGraph::PostOrderTraversalPDTNode(const DomTreeNode *dtn) {
                 // 去 INT 中查找是否存在当前依赖对象，如果存在：
                 if (INT.find(cdElem) != INT.end()) {
                     // 从 srcNode 和 currNode 中删除该边
-                    inEdge->getSrcNode()->removeOutgoingEdge(inEdge);
-                    inEdge->getDstNode()->removeIncomingEdge(inEdge);
-                    delete inEdge;
+                    removeCDGEdge(inEdge);
                 }
             }
             // 最后从当前 childRegionNode 那边连过来一条线到 currRegionNode
-            CDGEdge *newEdge = new CDGEdge(childRegionNode, currRegionNode, -2);
-            childRegionNode->addOutgoingEdge(newEdge);
-            currRegionNode->addIncomingEdge(newEdge);
+            addCDGEdge(childRegionNode, currRegionNode, CDGEdge::LabelType_None);
         }
     }
 }
