@@ -1,8 +1,0 @@
-digraph "CDG" {
-	label="CDG";
-
-	Node0x29196f0 [shape=record,color=blue,label="{C: 2 \n[%before_entry]\n|{<s0>T}}"];
-	Node0x29196f0:s0 -> Node0x2914060[collor=blue];
-	Node0x2914060 [shape=record,color=blue,label="{C: 1 \n[%entry]\n}"];
-	Node0x2913fe0 [shape=record,color=blue,label="{C: 0 \n}"];
-}

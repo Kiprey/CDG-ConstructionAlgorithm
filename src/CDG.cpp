@@ -33,7 +33,7 @@ void ControlDependenceGraph::initCDG(const SVFFunction *fun)
     DepenSSetTy setS;
     buildPDT(fun,setS);
 
-    ///@warning 注意exit节点存储的的基本快指针为Null
+    ///@warning 注意exit节点存储的的基本块指针为Null
     //为每个PDT节点初始化一个CDG节点
     initCDGNodeFromPDT(PDT->getRootNode());
 
@@ -44,7 +44,7 @@ void ControlDependenceGraph::initCDG(const SVFFunction *fun)
     findSSet(icfg->getFunEntryBlockNode(fun), visited, setS);//1.找到S集合
     showSetS(setS,outs());
 
-    buildinitCDG(setS);//2.根据S集合计算支配关系，同时添加节点和边构建初始的CDG
+    buildinitCDG(setS);//2.根据S集合计算依赖关系，同时添加节点和边构建初始的CDG
     showCDMap(CDMap,outs());
     dump("wz_initial_cdg");
 
@@ -66,8 +66,9 @@ void CDG::findSSet(ICFGNode *iNode, Set<const ICFGNode *> &visited, DepenSSetTy 
     if (   !(iNode->hasOutgoingEdge()  )|| SVFUtil::dyn_cast<FunExitBlockNode>(iNode))
         return;
     const BranchInst* br = SVFUtil::dyn_cast<BranchInst>(&(iNode->getBB()->back()));
-    ///@warning注意这里的判断条件，即便只有一个出边，br也可能不为空!(br&&br->isConditional()) ||icfgOutIntraEdgeNum(iNode)==1
+    /// @warning 注意这里的判断条件，即便只有一个出边，br也可能不为空!(br&&br->isConditional()) ||icfgOutIntraEdgeNum(iNode)==1
     ///大于1，且没有br是可以的，比如switch
+    /// @todo 可能爆栈
     if ( icfgOutIntraEdgeNum(iNode)==1 ||SVFUtil::isa<FunEntryBlockNode>(iNode))
     {
 //        outs()<<"hasno cond::"<<iNode->getId()<<"\n";//DEBUG
