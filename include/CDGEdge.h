@@ -21,15 +21,11 @@ public:
     typedef CDGEdge::CDGEdgeSetTy::iterator iterator;
     typedef CDGEdge::CDGEdgeSetTy::const_iterator const_iterator;
 
-    enum LabelType
-    {
-        T,
-        F,
-        None
-    };
+    typedef int LabelType;
+    LabelType label;//-1==default,-2==None
     ControlDependenceEdge(ControlDependenceNode *s,
                           ControlDependenceNode *d,
-                          LabelType k);
+                          LabelType k=-2);
 };
 
 #endif //CDG_CONSTRUCT_CDGEDGE_H

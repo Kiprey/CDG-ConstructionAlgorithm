@@ -59,7 +59,7 @@ public:
         DTNodeTy A;
         DTNodeTy B;
         DTNodeTy L;
-        NodeID TF;
+        int label;
         friend bool operator<(const  DepenTuple&n1, const DepenTuple &n2) {
             return n1.A->getLevel() >= n2.A->getLevel();
         }
@@ -79,7 +79,6 @@ public:
     void findPathL2B(DepenSSetTy &S, vector<DTNodeTy> &P);
     void findPathA2B(DTNodeTy A, DepenSSetTy &S, vector<DTNodeTy> &P);
     void handleDepenVec(DepenTupleTy LB, vector<DTNodeTy> &P);
-    CDGEdge::LabelType lable2bool(NodeID TF);
 
     void addCDGEdge(CDGNode *s, CDGNode *d, CDGEdge::LabelType l);
 

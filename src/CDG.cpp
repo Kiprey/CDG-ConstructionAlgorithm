@@ -21,7 +21,7 @@ void CDG::buildPDT(const SVFFunction *fun, DepenSSetTy &setS) {
     DTNodeTy dnB = PDT->getNode(entryBB);
     DTNodeTy dnL = PDT->getRootNode();//就是exitBB
     PDT->print(outs());
-    DepenTupleTy ABLT = {dnA, dnB, dnL, CDGEdge::LabelType::T};//3.在S集合中添加一个元素，一个四元组表示before的依赖关系
+    DepenTupleTy ABLT = {dnA, dnB, dnL, 0};//3.在S集合中添加一个元素，一个四元组表示before的依赖关系
     setS.insert(ABLT);
 }
 
@@ -82,14 +82,14 @@ void CDG::findSSet(ICFGNode *iNode, Set<const ICFGNode *> &visited, DepenSSetTy 
             continue;
         findSSet(intraEdge->getDstNode(), visited, setS);
         //判断该边的两个点是否存在支配关系，存在则存入S集合
-        NodeID TF = intraEdge->getBranchCondtion().second;
+        int l = intraEdge->getBranchCondtion().second;
         const llvm::BasicBlock *bbA = intraEdge->getSrcNode()->getBB();
         const llvm::BasicBlock *bbB = intraEdge->getDstNode()->getBB();
         DTNodeTy dnA = PDT->getNode(bbA);
         DTNodeTy dnB = PDT->getNode(bbB);
         if (!PDT->properlyDominates(dnB, dnA)) { //Return true iff B dominates A and A != B.
             DTNodeTy dnL = PDT->getNode(PDT->findNearestCommonDominator(bbA, bbB));
-            DepenTupleTy ABLT = {dnA, dnB, dnL, TF};
+            DepenTupleTy ABLT = {dnA, dnB, dnL, l};
             setS.insert(ABLT);
         }
     }
@@ -149,14 +149,14 @@ void CDG::initCDGNodeFromPDT(DTNodeTy dtNode) {
  */
 void CDG::handleDepenVec(DepenTupleTy LB, vector<DTNodeTy> &P) {
     DTNodeTy L = LB.L, B = LB.B, A = LB.A;
-    NodeID TF = LB.TF;
+    NodeID TF = LB.label;
     auto pi = std::find(P.begin(), P.end(), L);//find L
     if (pi == P.end())
         return;
     if (A != L)                 //if A!=L, the path dont contant L
         ++pi;
     CDGNode *nodeA = getCDGNode(getNodeIDFromBB(A->getBlock())); //all node fromL2B dependent on A
-    CDGEdge::LabelType l = lable2bool(TF);
+    CDGEdge::LabelType l = TF;
     CDSetElemTy tmpCDSetElem(nodeA->getId(), l);//依赖集中的元素
     for (; pi != P.end(); pi++) { //遍历路径P，添加依赖集
         NodeID cdNodeID = getNodeIDFromBB((*pi)->getBlock());
@@ -174,21 +174,6 @@ void CDG::handleDepenVec(DepenTupleTy LB, vector<DTNodeTy> &P) {
     }
 }
 
-/*!
- * 将u32的lable类型转为CDGEdge::LableType类型
- * @param TF
- * @return
- */
-CDGEdge::LabelType CDG::lable2bool(NodeID TF) {
-    switch (TF) {
-        case 0:
-            return CDGEdge::LabelType::T;
-        case 1:
-            return CDGEdge::LabelType::F;
-        default:
-            return CDGEdge::LabelType::None;
-    }
-}
 
 /*!
  * 找到ICFG节点的过程内的出边数量（不计算call和ret边）
@@ -307,7 +292,7 @@ void ControlDependenceGraph::addRegionNodeToCDG() {
 //            CDMap[dstNode->getId()].insert(elem);
         }
         // 建立 node <-- none -- RegionNode
-        CDGEdge *region2dst = new CDGEdge(regionNode, dstNode, CDGEdge::LabelType::None);
+        CDGEdge *region2dst = new CDGEdge(regionNode, dstNode, -2);
         regionNode->addOutgoingEdge(region2dst);
         dstNode->addIncomingEdge(region2dst);
 
@@ -337,10 +322,10 @@ void ControlDependenceGraph::addRegionNodeToCDG() {
         for (auto edgeIter = node->OutEdgeBegin(); edgeIter != node->OutEdgeEnd(); edgeIter++) {
             CDGEdge *edge = *edgeIter;
             switch (edge->getEdgeKind()) {
-                case CDGEdge::LabelType::T:
+                case 0:
                     edgeTF[0].push_back(edge);
                     break;
-                case CDGEdge::LabelType::F:
+                case 1:
                     edgeTF[1].push_back(edge);
                     break;
             }
@@ -358,7 +343,7 @@ void ControlDependenceGraph::addRegionNodeToCDG() {
 
             // 建立 RegionNode <-- T/F -- node
             CDGEdge *node2regionNode = new CDGEdge(node, regionNode,
-                                                   (i == 0 ? CDGEdge::LabelType::T : CDGEdge::LabelType::F));
+                                                   (i == 0 ? 0 : 1));
             node->addOutgoingEdge(node2regionNode);
             regionNode->addIncomingEdge(node2regionNode);
 
@@ -368,7 +353,7 @@ void ControlDependenceGraph::addRegionNodeToCDG() {
                 CDGEdge *edge = *(edgeIter++);
                 CDGNode *anotherRegionNode = edge->getDstNode();
                 // 先加边 anotherRegionNode <-- none -- regionNode 的边,标签应为空而不是(CDGEdge::LabelType)edge->getEdgeKind()
-                CDGEdge *region2anotherRegion = new CDGEdge(regionNode, anotherRegionNode, CDGEdge::LabelType::None);
+                CDGEdge *region2anotherRegion = new CDGEdge(regionNode, anotherRegionNode, -2);
                 regionNode->addOutgoingEdge(region2anotherRegion);
                 anotherRegionNode->addIncomingEdge(region2anotherRegion);
                 // 再删除 anotherRegionNode <-- edge -- node 的边, 将 edge 从原先的图中删除
@@ -438,7 +423,7 @@ void ControlDependenceGraph::PostOrderTraversalPDTNode(const DomTreeNode *dtn) {
                 }
             }
             // 最后从当前 currRegionNode 那边连过来一条线到 childRegionNode
-            CDGEdge *newEdge = new CDGEdge(currRegionNode, childRegionNode, CDGEdge::LabelType::None);
+            CDGEdge *newEdge = new CDGEdge(currRegionNode, childRegionNode, -2);
             currRegionNode->addOutgoingEdge(newEdge);
             childRegionNode->addIncomingEdge(newEdge);
         }
@@ -463,7 +448,7 @@ void ControlDependenceGraph::PostOrderTraversalPDTNode(const DomTreeNode *dtn) {
                 }
             }
             // 最后从当前 childRegionNode 那边连过来一条线到 currRegionNode
-            CDGEdge *newEdge = new CDGEdge(childRegionNode, currRegionNode, CDGEdge::LabelType::None);
+            CDGEdge *newEdge = new CDGEdge(childRegionNode, currRegionNode, -2);
             childRegionNode->addOutgoingEdge(newEdge);
             currRegionNode->addIncomingEdge(newEdge);
         }
@@ -487,12 +472,7 @@ void CDG::showSetS(DepenSSetTy &S, llvm::raw_ostream &O) {
             it->L->getBlock()->printAsOperand(O, false);
         else
             O << " <<exit node>>";
-        if (it->TF == 0)
-            O << "\t,TF: T" << "\n";
-        else if (it->TF == 1)
-            O << "\t,TF: F" << "\n";
-        else
-            O << "\t,TF: None" << "\n";
+        O << "\t,label: "<<it->label << "\n";
     }
 }
 
@@ -628,10 +608,8 @@ namespace llvm {
         static std::string getEdgeAttributes(CDGNode *, EdgeIter EI, CDG *) {
             const CDGEdge *edge = *(EI.getCurrent());
             assert(edge && "No edge found!!");
-            if (edge->getEdgeKind() == CDGEdge::LabelType::T) {
+            if (edge->getEdgeKind() == 0) {
                 return "collor=blue";
-            } else if (edge->getEdgeKind() == CDGEdge::LabelType::T) {
-                return "collor=red";
             }
             return "";
         }
@@ -644,11 +622,7 @@ namespace llvm {
 
             std::string str;
             raw_string_ostream rawstr(str);
-            if (edge->getEdgeKind() == CDGEdge::LabelType::T) {
-                rawstr << "T";
-            } else if (edge->getEdgeKind() == CDGEdge::LabelType::F) {
-                rawstr << "F";
-            }
+            rawstr << edge->getEdgeKind() ;
             return rawstr.str();
         }
     };
