@@ -320,33 +320,29 @@ void ControlDependenceGraph::addRegionNodeToCDG() {
     for (auto iter = nodeWorklists.begin(); iter != nodeWorklists.end(); iter++) {
         // 获取当前节点出边的labelType
         CDGNode *node = *iter;
-        /// @todo 添加对 switch 的处理
-        // 这里声明数组，方便代码编写
-        list<CDGEdge *> edgeTF[2];
-        for (auto edgeIter = node->OutEdgeBegin(); edgeIter != node->OutEdgeEnd(); edgeIter++) {
+        /// @note 添加对 switch 的处理
+        map<CDGEdge::LabelType, list<CDGEdge *>> edgeMap;
+        for (auto edgeIter = node->OutEdgeBegin(); edgeIter != node->OutEdgeEnd(); edgeIter++)
+        {
             CDGEdge *edge = *edgeIter;
-            switch (edge->getEdgeKind()) {
-                case 0:
-                    edgeTF[0].push_back(edge);
-                    break;
-                case 1:
-                    edgeTF[1].push_back(edge);
-                    break;
-            }
+            /// note 这里无需考虑 edgeMap 中不存在的键值对，因为 operator[] 会自动创建
+            edgeMap[edge->getEdgeKind()].push_back(edge);
         }
-        // 开始处理 T F
-        for (size_t i = 0; i < 2; i++) {
-            list<CDGEdge *> &edges = edgeTF[i];
-            // 如果 T/F 类型只有一条边，或者没有边，则不进行处理
-            if (edges.size() <= 1)
+        // 开始处理 edge->getEdgeKind()
+        for (auto mapIter = edgeMap.begin(); mapIter != edgeMap.end(); mapIter++)
+        {
+            CDGEdge::LabelType lableTy = mapIter->first;
+            list<CDGEdge *> &edges = mapIter->second;
+            // 如果某个 lableTy 只有一条边，或者是 None 类型的，则不进行处理
+            if (edges.size() <= 1 || lableTy == CDGEdge::LabelType_None)
                 continue;
-            // 如果 T/F 有多条出边，则新建一个 RegionNode，删除原先的边，并建立新边
+            // 如果某个 lableTy 有多条出边，则新建一个 RegionNode，删除原先的边，并建立新边
             //      1. 新建 Region Node，并将其加入图中
             CDGNode *regionNode = addRegionCDGNode();
             this->addGNode(regionNode->getId(), regionNode);
 
-            // 建立 RegionNode <-- T/F -- node
-            addCDGEdge(node, regionNode, (i == 0 ? 0 : 1));
+            // 建立 RegionNode <-- lableTy -- node
+            addCDGEdge(node, regionNode, lableTy);
 
             //      2. 遍历某一类型的所有边，将其删除并建立新边
             /// @note delete后指针失效但不影响list的顺序
