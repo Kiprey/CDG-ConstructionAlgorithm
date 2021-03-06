@@ -35,6 +35,10 @@ public:
     ControlDependenceEdge(ControlDependenceNode *s,
                           ControlDependenceNode *d,
                           LabelType k = LabelType_None);
+    LabelType getLabel() const {
+        return label;
+    };
+
 };
 
 #endif //CDG_CONSTRUCT_CDGEDGE_H

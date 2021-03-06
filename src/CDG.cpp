@@ -64,7 +64,6 @@ void CDG::findSSet(ICFGNode *iNode, Set<const ICFGNode *> &visited, DepenSSetTy 
     visited.insert(iNode);
     if (!(iNode->hasOutgoingEdge()) || SVFUtil::dyn_cast<FunExitBlockNode>(iNode))
         return;
-    const BranchInst *br = SVFUtil::dyn_cast<BranchInst>(&(iNode->getBB()->back()));
     /// @warning 注意这里的判断条件，即便只有一个出边，br也可能不为空!(br&&br->isConditional()) ||icfgOutIntraEdgeNum(iNode)==1
     ///大于1，且没有br是可以的，比如switch
     /// @todo 可能爆栈
@@ -85,6 +84,18 @@ void CDG::findSSet(ICFGNode *iNode, Set<const ICFGNode *> &visited, DepenSSetTy 
         int l = intraEdge->getBranchCondtion().second;
         const llvm::BasicBlock *bbA = intraEdge->getSrcNode()->getBB();
         const llvm::BasicBlock *bbB = intraEdge->getDstNode()->getBB();
+        const SwitchInst *cbr=dyn_cast<SwitchInst>(&(iNode->getBB()->back()));
+        if(cbr){
+            if (bbB == cbr->getDefaultDest())
+                l = CDGEdge::LabelType_Default;
+            else
+                for (auto Case : cbr->cases()) {
+                    if (Case.getCaseSuccessor() != bbB) {
+                        l = Case.getCaseIndex();
+                        break;
+                    }
+                }
+        }
         DTNodeTy dnA = PDT->getNode(bbA);
         DTNodeTy dnB = PDT->getNode(bbB);
         if (!PDT->properlyDominates(dnB, dnA)) { //Return true iff B dominates A and A != B.
@@ -472,7 +483,7 @@ ControlDependenceEdge::ControlDependenceEdge(
         ControlDependenceNode *s,
         ControlDependenceNode *d,
         LabelType k)
-        : GenericCDEdgeTy(s, d, k) {}
+        : GenericCDEdgeTy(s, d, k) ,label(k){}
 
 
 ControlDependenceNode::ControlDependenceNode(NodeID i, NodeType ty)
@@ -595,12 +606,26 @@ namespace llvm {
 //
         template<class EdgeIter>
         static std::string getEdgeSourceLabel(CDGNode *, EdgeIter EI) {
-            const CDGEdge *edge = *(EI.getCurrent());
+            CDGEdge *edge = *(EI.getCurrent());
             assert(edge && "No edge found!!");
 
             std::string str;
             raw_string_ostream rawstr(str);
-            rawstr << edge->getEdgeKind() ;
+            if(edge->getLabel()==CDGEdge::LabelType_None){
+                rawstr<<"";
+            }
+            else if(edge->getSrcNode()->getOutEdges().size()==2){
+                if(edge->getLabel()==0)
+                    rawstr<<"T";
+                else if(edge->getLabel()==1)
+                    rawstr<<"F";
+            }
+            else if (edge->getLabel()==CDGEdge::LabelType_Default){
+                rawstr<<"default";
+            }
+            else{
+                rawstr << edge->getLabel();
+            }
             return rawstr.str();
         }
     };
