@@ -18,6 +18,8 @@ public:
         RegionNode
     };
     ControlDependenceNode(NodeID i, NodeType ty);
+    ~ControlDependenceNode();
+    
     void setBasicBlock(BasicBlock *bb);
     BasicBlock *getBasicBlock();
 

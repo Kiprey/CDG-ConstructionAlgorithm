@@ -3,8 +3,6 @@
 ControlDependenceGraph::ControlDependenceGraph(ICFG *icfg) : icfg(icfg), totalCDGNode(0)
 {
     PDT = new llvm::PostDominatorTree();
-    //    llvm::Function llvmFun(fun.getLLVMFun());
-    /// @todo 构建PDT
 }
 
 /**
@@ -535,6 +533,12 @@ ControlDependenceEdge::ControlDependenceEdge(
 
 ControlDependenceNode::ControlDependenceNode(NodeID i, NodeType ty)
     : GenericCDNodeTy(i, ty), _bb(NULL){};
+
+ControlDependenceNode::~ControlDependenceNode()
+{
+    for(ControlDependenceEdge* edge : getOutEdges())
+        delete edge;
+}
 
 void ControlDependenceNode::setBasicBlock(BasicBlock *bb)
 {
