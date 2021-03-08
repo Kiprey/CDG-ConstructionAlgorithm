@@ -48,11 +48,11 @@ void ControlDependenceGraph::initCDG(const SVFFunction *fun)
     //4.根据S集合计算依赖关系，同时添加节点和边构建初始的CDG
     buildinitCDG(setS);
     showCDMap(CDMap, outs());
-    dump("wz_initial_cdg");
+    dump("cdg_initial");
 
     //5.添加RegionNode
     addRegionNodeToCDG();
-    dump("wz_final_cdg");
+    dump("cdg_final");
 }
 
 /*!
@@ -325,7 +325,7 @@ void ControlDependenceGraph::addRegionNodeToCDG()
             CDGEdge *edge = *(it++);
             CDGNode *srcNode = edge->getSrcNode();
             // 先加边 regionNode <-- edge -- srcNode 的边
-            addCDGEdge(srcNode, regionNode, edge->getEdgeKind());
+            addCDGEdge(srcNode, regionNode, edge->getLabel());
             // 再删除 dstNode <-- edge -- srcNode 的边, 将 edge 从原先的图中删除
             removeCDGEdge(edge);
         }
@@ -361,9 +361,9 @@ void ControlDependenceGraph::addRegionNodeToCDG()
         {
             CDGEdge *edge = *edgeIter;
             /// note 这里无需考虑 edgeMap 中不存在的键值对，因为 operator[] 会自动创建
-            edgeMap[edge->getEdgeKind()].push_back(edge);
+            edgeMap[edge->getLabel()].push_back(edge);
         }
-        // 开始处理 edge->getEdgeKind()
+        // 开始处理 edge->getLabel()
         for (auto mapIter = edgeMap.begin(); mapIter != edgeMap.end(); mapIter++)
         {
             CDGEdge::LabelType lableTy = mapIter->first;
@@ -385,7 +385,7 @@ void ControlDependenceGraph::addRegionNodeToCDG()
             {
                 CDGEdge *edge = *(edgeIter++);
                 CDGNode *anotherRegionNode = edge->getDstNode();
-                // 先加边 anotherRegionNode <-- none -- regionNode 的边,标签应为空而不是(CDGEdge::LabelType)edge->getEdgeKind()
+                // 先加边 anotherRegionNode <-- none -- regionNode 的边,标签应为空而不是(CDGEdge::LabelType)edge->getLabel()
                 addCDGEdge(regionNode, anotherRegionNode, CDGEdge::LabelType_None);
                 // 再删除 anotherRegionNode <-- edge -- node 的边, 将 edge 从原先的图中删除
                 removeCDGEdge(edge);
@@ -446,7 +446,7 @@ void ControlDependenceGraph::PostOrderTraversalPDTNode(const DomTreeNode *dtn)
             {
                 CDGEdge *inEdge = *(edgeIter++);
                 // 构造一个依赖对象
-                CDSetElemTy cdElem(inEdge->getSrcID(), (CDGEdge::LabelType)inEdge->getEdgeKind());
+                CDSetElemTy cdElem(inEdge->getSrcID(), (CDGEdge::LabelType)inEdge->getLabel());
                 // 去 INT 中查找是否存在当前依赖对象，如果存在：
                 if (INT.find(cdElem) != INT.end())
                 {
@@ -470,7 +470,7 @@ void ControlDependenceGraph::PostOrderTraversalPDTNode(const DomTreeNode *dtn)
             {
                 CDGEdge *inEdge = *(edgeIter++);
                 // 构造一个依赖对象
-                CDSetElemTy cdElem(inEdge->getSrcID(), (CDGEdge::LabelType)inEdge->getEdgeKind());
+                CDSetElemTy cdElem(inEdge->getSrcID(), (CDGEdge::LabelType)inEdge->getLabel());
                 // 去 INT 中查找是否存在当前依赖对象，如果存在：
                 if (INT.find(cdElem) != INT.end())
                 {
@@ -664,7 +664,7 @@ struct DOTGraphTraits<CDG *> : public DefaultDOTGraphTraits
     {
         const CDGEdge *edge = *(EI.getCurrent());
         assert(edge && "No edge found!!");
-        if (edge->getEdgeKind() == 0)
+        if (edge->getLabel() == 0)
         {
             return "collor=blue";
         }
