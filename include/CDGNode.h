@@ -20,8 +20,8 @@ public:
     ControlDependenceNode(NodeID i, NodeType ty);
     ~ControlDependenceNode();
     
-    void setBasicBlock(BasicBlock *bb);
-    BasicBlock *getBasicBlock();
+    void setBasicBlock(const BasicBlock *bb);
+    const BasicBlock *getBasicBlock();
 
     /// Overloading operator << for dumping CDG node ID
     //@{
@@ -34,13 +34,13 @@ public:
     virtual const std::string toString() const;
 
 private:
-    BasicBlock *_bb;
+    const BasicBlock *_bb;
 };
 
 class ControlCDGNode : public CDGNode
 {
 public:
-    ControlCDGNode(NodeID id, BasicBlock *bb);
+    ControlCDGNode(NodeID id,const BasicBlock *bb);
 
     //@}
     /// Methods for support type inquiry through isa, cast, and dyn_cast:

@@ -67,13 +67,43 @@ public:
     } DepenTupleTy;
     typedef set<DepenTupleTy> DepenSSetTy;
     typedef vector<DTNodeTy> DepenVecTy;
+    typedef Map<const SVFFunction*, ControlCDGNode *> FunToFunBeforeEntryNodeMapTy;
 
+    NodeID totalCDGNode;
+
+private:
+    map<const BasicBlock *, NodeID> _bb2CDGNodeID;
+    PostDominatorTree *PDT;
+    CDMapTy CDMap;
+    ICFG *icfg;
+    FunToFunBeforeEntryNodeMapTy FunToFunBeforeEntryNodeMap; ///< map a function to its FunBeforeEntryBlockNode
 public:
     ControlDependenceGraph(ICFG *icfg);
 
+public:
+    inline ControlCDGNode *addControlCDGNode(const BasicBlock *nbb);
+    inline void addCDGNode(NodeType *node);
+    void addCDGEdge(CDGNode *s, CDGNode *d, CDGEdge::LabelType l);
+
+private:
+    inline RegionCDGNode *addRegionCDGNode();
+    void addRegionNodeToCDG();
+
+public:
+    void removeCDGEdge(CDGEdge *edge);
+    inline void removeCDGNode(NodeType *node);
+
+public:
+    inline CDGNode *getCDGNode(NodeID id);
+    inline bool hasCDGNode(NodeID id);
+    NodeID getNodeIDFromBB(const BasicBlock *bb);
+
+public:
+    void PostOrderTraversalPDTNode(const DomTreeNode *dtn);
     void buildPDT(const SVFFunction *fun, DepenSSetTy &setS);
     void initCDG(const SVFFunction *fun);     //construct initial CDG
-    void initCDGNodeFromPDT(DTNodeTy dtNode); //初始化一个节点
+    void initCDGNodeFromPDTRoot(const SVFFunction *fun,PostDominatorTree* PDT); //初始化节点
+    void initCDGNodeFromPDT(DTNodeTy dtNode); //初始化节点
     void findSSet(ICFGNode *entryNode, Set<const ICFGNode *> &visited, DepenSSetTy &setS);
     void buildinitCDG(DepenSSetTy S);
     u32_t icfgOutIntraEdgeNum(ICFGNode *iNode);
@@ -81,31 +111,12 @@ public:
     void findPathA2B(DTNodeTy A, DepenSSetTy &S, vector<DTNodeTy> &P);
     void handleDepenVec(DepenTupleTy LB, vector<DTNodeTy> &P);
 
-    void addCDGEdge(CDGNode *s, CDGNode *d, CDGEdge::LabelType l);
-    void removeCDGEdge(CDGEdge *edge);
-
-    inline CDGNode *getCDGNode(NodeID id);
-    inline bool hasCDGNode(NodeID id);
-    inline void removeCDGNode(NodeType *node);
-    NodeID getNodeIDFromBB(BasicBlock *bb);
-
+public:
     void showSetS(DepenSSetTy &S, llvm::raw_ostream &O);
     void showCDMap(CDMapTy CD, llvm::raw_ostream &O);
     /// Dump graph into dot file
     void dump(const std::string &file);
 
-    NodeID totalCDGNode;
-
-private:
-    map<BasicBlock *, NodeID> _bb2CDGNodeID;
-    PostDominatorTree *PDT;
-    CDMapTy CDMap;
-    ICFG *icfg;
-    inline void addCDGNode(NodeType *node);
-    inline ControlCDGNode *addControlCDGNode(BasicBlock *nbb);
-    inline RegionCDGNode *addRegionCDGNode();
-    void PostOrderTraversalPDTNode(const DomTreeNode *dtn);
-    void addRegionNodeToCDG();
 };
 
 namespace llvm

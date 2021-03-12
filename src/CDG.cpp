@@ -36,7 +36,7 @@ void ControlDependenceGraph::initCDG(const SVFFunction *fun)
     buildPDT(fun, setS);
 
     //2.为每个PDT节点初始化一个CDG节点
-    initCDGNodeFromPDT(PDT->getRootNode());
+    initCDGNodeFromPDTRoot(fun,PDT);
 
     //3.找到S集合
     Set<const ICFGNode *> visited;
@@ -160,6 +160,15 @@ void CDG::findPathA2B(DTNodeTy A, DepenSSetTy &S, vector<DTNodeTy> &P)
  * 为每个PDT节点初始化CDG节点，注意根据PDT中exit初始化的节点的basicblock为Null
  * @param dtNode PDT节点
  */
+void CDG::initCDGNodeFromPDTRoot(const SVFFunction *fun,PostDominatorTree* pdt)
+{
+    DTNodeTy dtNode=pdt->getRootNode();
+    ControlCDGNode* cNode =addControlCDGNode(dtNode->getBlock());
+    FunToFunBeforeEntryNodeMap[fun]=cNode;
+    for (auto it = dtNode->begin(), ie = dtNode->end(); it != ie; ++it)
+        initCDGNodeFromPDT(*it);
+}
+
 void CDG::initCDGNodeFromPDT(DTNodeTy dtNode)
 {
     addControlCDGNode(dtNode->getBlock());
@@ -226,7 +235,7 @@ inline void ControlDependenceGraph::addCDGNode(CDGNode *node)
     addGNode(node->getId(), node);
 }
 
-inline ControlCDGNode *ControlDependenceGraph::addControlCDGNode(BasicBlock *nbb)
+inline ControlCDGNode *ControlDependenceGraph::addControlCDGNode(const BasicBlock *nbb)
 {
     ControlCDGNode *iNode = new ControlCDGNode(totalCDGNode++, nbb);
     addCDGNode(iNode);
@@ -270,7 +279,7 @@ void ControlDependenceGraph::removeCDGNode(CDGNode *node)
     removeGNode(node);
 }
 
-NodeID ControlDependenceGraph::getNodeIDFromBB(BasicBlock *bb)
+NodeID ControlDependenceGraph::getNodeIDFromBB(const BasicBlock *bb)
 {
     auto iter = _bb2CDGNodeID.find(bb);
     if (iter != _bb2CDGNodeID.end())
@@ -540,17 +549,17 @@ ControlDependenceNode::~ControlDependenceNode()
         delete edge;
 }
 
-void ControlDependenceNode::setBasicBlock(BasicBlock *bb)
+void ControlDependenceNode::setBasicBlock(const BasicBlock *bb)
 {
     _bb = bb;
 }
 
-BasicBlock *ControlDependenceNode::getBasicBlock()
+const BasicBlock *ControlDependenceNode::getBasicBlock()
 {
     return _bb;
 }
 
-ControlCDGNode::ControlCDGNode(NodeID id, llvm::BasicBlock *bb)
+ControlCDGNode::ControlCDGNode(NodeID id, const BasicBlock *bb)
     : CDGNode(id, CDGNode::NodeType::ControlNode)
 {
     setBasicBlock(bb);
