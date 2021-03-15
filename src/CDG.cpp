@@ -541,14 +541,19 @@ ControlDependenceEdge::ControlDependenceEdge(
     : GenericCDEdgeTy(s, d, k), label(k) {}
 
 ControlDependenceNode::ControlDependenceNode(NodeID i, NodeType ty)
-    : GenericCDNodeTy(i, ty), _bb(NULL){};
+    : GenericCDNodeTy(i, ty), fun(NULL),_bb(NULL){};
 
 ControlDependenceNode::~ControlDependenceNode()
 {
     for(ControlDependenceEdge* edge : getOutEdges())
         delete edge;
 }
-
+FunEntryCDGNode::FunEntryCDGNode(NodeID id, const SVFFunction* f,const BasicBlock* bb) : ControlDependenceNode(id, FunEntryNode)
+{
+    fun = f;
+    // if function is implemented
+    _bb=bb;
+}
 void ControlDependenceNode::setBasicBlock(const BasicBlock *bb)
 {
     _bb = bb;
@@ -595,7 +600,14 @@ const std::string RegionCDGNode::toString() const
     //    rawstr << " " << *getInst() << " {fun: " << getFun()->getName() << "}";
     return rawstr.str();
 }
-
+const std::string FunEntryCDGNode::toString() const
+{
+    std::string str;
+    raw_string_ostream rawstr(str);
+    rawstr << "FunEntryCDGNode ID: " << getId();
+    //    rawstr << " " << *getInst() << " {fun: " << getFun()->getName() << "}";
+    return rawstr.str();
+}
 /*!
  * GraphTraits specialization
  */

@@ -5,7 +5,7 @@
 #include "SVF-FE/PAGBuilder.h"
 
 #include "CDG.h"
-
+#include "CDGBuilder.h"
 using namespace SVF;
 using namespace llvm;
 using namespace std;
@@ -57,12 +57,11 @@ int main(int argc, char **argv)
         outs()<<"cant find input fun:"<<InputFuncName;
         return 0;
     }
+
     ICFG *icfg = pag->getICFG();
     ControlDependenceGraph *cdGraph = new ControlDependenceGraph(icfg);
-    cdGraph->initCDG(fun);
-    // print CDG
-    // delete node/edge/graph/PDT
-    //    icfg->dump("wz_icfg");
-    
+//    cdGraph->initCDG(fun);
+    CDGBuilder *cdgBuilder=new CDGBuilder(cdGraph);
+    cdgBuilder->build(svfModule);
     return 0;
 }

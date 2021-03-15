@@ -15,7 +15,8 @@ public:
     enum NodeType
     {
         ControlNode,
-        RegionNode
+        RegionNode,
+        FunEntryNode
     };
     ControlDependenceNode(NodeID i, NodeType ty);
     ~ControlDependenceNode();
@@ -24,7 +25,6 @@ public:
     const BasicBlock *getBasicBlock();
 
     /// Overloading operator << for dumping CDG node ID
-    //@{
     friend raw_ostream &operator<<(raw_ostream &o, const CDGNode &node)
     {
         o << node.toString();
@@ -33,8 +33,19 @@ public:
 
     virtual const std::string toString() const;
 
-private:
+    /// Return the function of this CDGNode
+    inline const SVFFunction* getFun() const
+    {
+        return fun;
+    }
+    /// Return the function of this CDGNode
+    inline const BasicBlock* getBB() const
+    {
+        return _bb;
+    }
+protected:
     const BasicBlock *_bb;
+    const SVFFunction* fun;
 };
 
 class ControlCDGNode : public CDGNode
@@ -91,6 +102,36 @@ public:
     virtual const std::string toString() const;
 
 private:
+};
+/*!
+ * Function entry CDGNode of a function
+ */
+class FunEntryCDGNode : public CDGNode
+{
+
+public:
+    FunEntryCDGNode(NodeID id, const SVFFunction* f,const BasicBlock* bb);
+
+    ///Methods for support type inquiry through isa, cast, and dyn_cast:
+    //@{
+
+   static inline bool classof(const FunEntryCDGNode *node)
+    {
+        return true;
+    }
+
+    static inline bool classof(const CDGNode *node)
+    {
+        return node->getNodeKind() == FunEntryNode;
+    }
+
+    static inline bool classof(const GenericCDNodeTy *node)
+    {
+        return node->getNodeKind() == FunEntryNode;
+    }
+    //@}
+
+    const virtual std::string toString() const;
 };
 
 #endif //CDG_CONSTRUCT_CDGNODE_H
