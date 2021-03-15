@@ -47,7 +47,7 @@ void CDGBuilder::processCallsite(const SVFFunction*  fun, WorkList& worklist)
     while (!worklist.empty())
     {
         const Instruction* inst = worklist.pop();
-        if (visited.find(inst) == visited.end())
+        if (visited.find(inst) != visited.end())
             continue;
         visited.insert(inst);
         //遇到Return指令就continue

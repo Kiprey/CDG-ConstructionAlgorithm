@@ -12,7 +12,7 @@ list<CDElemPathTy> traverseEdgesInFunc(CDGEdge* edge,
 {
     CDGNode* src = edge->getSrcNode();
     // 加个 visited 集合防止循环
-    if(visited.find(src) == visited.end())
+    if(visited.find(src) != visited.end())
         return list<CDElemPathTy>();
     visited.insert(src);
     
