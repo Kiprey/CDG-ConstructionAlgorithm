@@ -17,9 +17,11 @@ public:
     typedef FIFOWorkList<const Instruction*> WorkList;
 private:
     CDG* cdg;
-
+    SVFG* svfg;
 public:
     CDGBuilder(CDG* c):cdg(c){};
+
+    //构建过程间的大图
     void build(SVFModule* svfModule);
     void processCallsite(const SVFFunction*  fun, WorkList& worklist);
     void handleCallSite(const Instruction *inst);

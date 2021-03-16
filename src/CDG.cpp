@@ -4,6 +4,45 @@ ControlDependenceGraph::ControlDependenceGraph(ICFG *icfg) : icfg(icfg), totalCD
 {
     PDT = new llvm::PostDominatorTree();
 }
+/**
+ *
+ */
+void CDG::buildSVFDG() {
+    const SVFFunction *fun;
+    //遍历函数的每个StmtSVFG节点
+    for(auto node:svfg->getVFGNodes(fun)){
+        if(StmtSVFGNode* node=SVFUtil::dyn_cast<StmtSVFGNode>(node)){
+            const BasicBlock* bb=node->getInst()->getParent();
+            auto cditer=CDMap.find(getNodeIDFromBB(bb));
+            if(cditer==CDMap.end() )
+                return;
+            CDSetTy cdSet=cditer->second;
+            for
+        }
+    }
+    for(auto iter=CDMap.begin(),eiter=CDMap.end();iter!=eiter;++iter){
+        const BasicBlock* curbb=getGNode(iter->first)->getBB();
+        for(auto& inst: *curbb){
+
+        }
+    }
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /**
  * 构建后支配树，添加一个before_entry节点

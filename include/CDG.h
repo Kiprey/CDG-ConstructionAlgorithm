@@ -76,6 +76,7 @@ private:
     PostDominatorTree *PDT;
     CDMapTy CDMap;
     ICFG *icfg;
+    SVFG *svfg;
     FunToFunBeforeEntryNodeMapTy FunToFunBeforeEntryNodeMap; ///< map a function to its FunBeforeEntryBlockNode
 public:
     ControlDependenceGraph(ICFG *icfg);
@@ -99,9 +100,13 @@ public:
     NodeID getNodeIDFromBB(const BasicBlock *bb);
 
 public:
+    //在SVFG上添加新的边
+    void buildSVFDG();
+
+
+    void initCDG(const SVFFunction *fun);     //construct initial CDG
     void PostOrderTraversalPDTNode(const DomTreeNode *dtn);
     void buildPDT(const SVFFunction *fun, DepenSSetTy &setS);
-    void initCDG(const SVFFunction *fun);     //construct initial CDG
     void initCDGNodeFromPDTRoot(const SVFFunction *fun,PostDominatorTree* PDT); //初始化节点
     void initCDGNodeFromPDT(DTNodeTy dtNode); //初始化节点
     void findSSet(ICFGNode *entryNode, Set<const ICFGNode *> &visited, DepenSSetTy &setS);

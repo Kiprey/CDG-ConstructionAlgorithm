@@ -106,17 +106,17 @@ list<CDElemPathTy> traverseEdgesBetweenFunc(
         CDGNode *entry_in_callsite_func;
         find_A_2_B_in_Func(callsite, callsite, &entry_in_callsite_func);
         // 如果是,则进入函数内查询
-        if(entry_in_A_func == entry_in_callsite_func)
-        {
-            list<CDElemPathTy> A_2_callsite_path = find_A_2_B_in_Func(A, callsite);
-            // 返回            
-        }
-        else
-        {
-            //如果不是,则查找 callsite 至 entry_in_callsite_func 的路径
-            list<CDElemPathTy> callsiteEntry_2_callsite_path 
-                = find_A_2_B_in_Func(entry_in_callsite_func, callsite);
-        }
+//        if(entry_in_A_func == entry_in_callsite_func)
+//        {
+//            list<CDElemPathTy> A_2_callsite_path = find_A_2_B_in_Func(A, callsite);
+//            // 返回
+//        }
+//        else
+//        {
+//            //如果不是,则查找 callsite 至 entry_in_callsite_func 的路径
+//            list<CDElemPathTy> callsiteEntry_2_callsite_path
+//                = find_A_2_B_in_Func(entry_in_callsite_func, callsite);
+//        }
         
         
     }
