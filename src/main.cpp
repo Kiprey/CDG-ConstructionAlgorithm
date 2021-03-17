@@ -6,6 +6,9 @@
 
 #include "CDG.h"
 #include "CDGBuilder.h"
+#include "Graphs/SVFG.h"
+#include "WPA/Andersen.h"
+
 using namespace SVF;
 using namespace llvm;
 using namespace std;
@@ -59,9 +62,16 @@ int main(int argc, char **argv)
     }
 
     ICFG *icfg = pag->getICFG();
-    ControlDependenceGraph *cdGraph = new ControlDependenceGraph(icfg);
-//    cdGraph->initCDG(fun);
-    CDGBuilder *cdgBuilder=new CDGBuilder(cdGraph);
-    cdgBuilder->build(svfModule);
+    /// Create Andersen's pointer analysis
+    Andersen* ander = AndersenWaveDiff::createAndersenWaveDiff(pag);
+
+    /// Sparse value-flow graph (SVFG)
+    SVFGBuilder svfBuilder;
+    SVFG* svfg = svfBuilder.buildFullSVFGWithoutOPT(ander);
+    svfg->dump("the original svfg");
+    ControlDependenceGraph *cdGraph = new ControlDependenceGraph(icfg,svfg);
+    cdGraph->initCDG(fun);
+    cdGraph->buildSVFDG(svfModule);
+
     return 0;
 }

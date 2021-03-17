@@ -67,19 +67,23 @@ public:
     } DepenTupleTy;
     typedef set<DepenTupleTy> DepenSSetTy;
     typedef vector<DTNodeTy> DepenVecTy;
-    typedef Map<const SVFFunction*, ControlCDGNode *> FunToFunBeforeEntryNodeMapTy;
-
+    typedef Map<const Function*, VFGNode *> FunToFunEntryVFGNodeMapTy;
+    typedef Map<const SVFFunction*, CDGNode *> FunToFunBeforeEntryNodeMapTy;
     NodeID totalCDGNode;
 
 private:
+
+    NodeID entryId;
+    NodeID callId;
     map<const BasicBlock *, NodeID> _bb2CDGNodeID;
     PostDominatorTree *PDT;
     CDMapTy CDMap;
     ICFG *icfg;
     SVFG *svfg;
-    FunToFunBeforeEntryNodeMapTy FunToFunBeforeEntryNodeMap; ///< map a function to its FunBeforeEntryBlockNode
+    FunToFunBeforeEntryNodeMapTy FunToFunBeforeEntryNodeMap;
+    FunToFunEntryVFGNodeMapTy FunToFunEntryVFGNodeMap; ///< map a function to its FunBeforeEntryBlockNode
 public:
-    ControlDependenceGraph(ICFG *icfg);
+    ControlDependenceGraph(ICFG *icfg,SVFG *svfg);
 
 public:
     inline ControlCDGNode *addControlCDGNode(const BasicBlock *nbb);
@@ -101,8 +105,8 @@ public:
 
 public:
     //在SVFG上添加新的边
-    void buildSVFDG();
-
+    void buildSVFDG(const SVFModule* svfModule);
+    void buildSVFDGFromFun(const SVFFunction* fun);
 
     void initCDG(const SVFFunction *fun);     //construct initial CDG
     void PostOrderTraversalPDTNode(const DomTreeNode *dtn);
@@ -116,6 +120,7 @@ public:
     void findPathA2B(DTNodeTy A, DepenSSetTy &S, vector<DTNodeTy> &P);
     void handleDepenVec(DepenTupleTy LB, vector<DTNodeTy> &P);
 
+    const CmpInst* getCmpInst(const BasicBlock* bb);
 public:
     void showSetS(DepenSSetTy &S, llvm::raw_ostream &O);
     void showCDMap(CDMapTy CD, llvm::raw_ostream &O);

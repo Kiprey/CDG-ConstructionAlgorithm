@@ -1,33 +1,132 @@
 #include "CDG.h"
 
-ControlDependenceGraph::ControlDependenceGraph(ICFG *icfg) : icfg(icfg), totalCDGNode(0)
+
+ControlDependenceGraph::ControlDependenceGraph(ICFG *icfg,SVFG* svfg) : icfg(icfg),svfg(svfg), totalCDGNode(0)
 {
     PDT = new llvm::PostDominatorTree();
+    entryId=2000;
+    callId=4000;
 }
+
+
+
+
+
+void CDG::buildSVFDG(const SVFModule* svfModule){
+    PAG* pag=svfg->getPAG();
+    //过程内的边
+    for (auto it = svfModule->begin(), ie = svfModule->end(); it != ie; it++)
+    {
+        const SVFFunction* fun=*it;
+        buildSVFDGFromFun(fun);
+        //遍历所有CallInst
+    }
+    //过程间的边，添加Callnode及其依赖，并另CallNode控制calledFunEntry
+    for (auto it = svfModule->begin(), ie = svfModule->end(); it != ie; it++)
+    {
+        const SVFFunction* fun=*it;
+        for(auto& B:*(fun->getLLVMFun())){
+            for(auto& I:B){
+                auto *C = dyn_cast<CallInst>(&I);
+                if (!C) {
+                    continue;
+                }
+                //新建一个call节点
+                VFGNode* callVFGNode=new VFGNode(callId++,VFGNode::VFGNodeK::NPtr);
+                svfg->addGNode(callId++,callVFGNode);
+                //连接call节点到calledFun的Entry节点
+                SVFFunction* calledFun=new SVFFunction(C->getCalledFunction());
+                auto mapIter=FunToFunEntryVFGNodeMap.find(calledFun->getLLVMFun());
+                if(mapIter!=FunToFunEntryVFGNodeMap.end()){
+                    VFGNode* dstCalleeNode=mapIter->second;
+                    VFGEdge* vfgedge=new VFGEdge(callVFGNode,dstCalleeNode,VFGEdge::VFGEdgeK::IntraIndirectVF);
+                    svfg->addSVFGEdge(vfgedge);
+                }
+                else
+                    outs()<<"different fun\n";
+                //找到call节点依赖的节点controlVFGNode，添加VFG边
+                VFGNode* controlVFGNode;
+                auto cdIter=CDMap.find(getNodeIDFromBB(&B));
+                //如果不含依赖，则跳过
+                if(cdIter==CDMap.end()){
+                    continue;
+                }
+                for(auto setIter:cdIter->second){
+                    outs()<<"depend on "<<setIter.getNodeID()<<"\n";
+                    const BasicBlock* controlBB=getCDGNode(setIter.getNodeID())->getBB();
+                    if(controlBB->getName()=="before_entry"){//依赖before_entry
+                        controlVFGNode=FunToFunEntryVFGNodeMap[fun->getLLVMFun()];
+                    }
+                    else{//找到控制块的cmp
+                        const Value* val=getCmpInst(controlBB)->getValueName()->getValue();
+                        controlVFGNode=svfg->getCmpVFGNode(pag->getPAGNode(pag->getValueNode(val)));
+                    }
+                }
+                //连接依赖
+                VFGEdge* vfgedge=new VFGEdge(controlVFGNode,callVFGNode,VFGEdge::VFGEdgeK::IntraIndirectVF);
+                svfg->addSVFGEdge(vfgedge);
+            }
+        }
+    }
+    svfg->dump("wz_test_svfg");
+}
+
 /**
  *
  */
-void CDG::buildSVFDG() {
-    const SVFFunction *fun;
-    //遍历函数的每个StmtSVFG节点
+void CDG::buildSVFDGFromFun(const SVFFunction *fun) {
+    PAG* pag=svfg->getPAG();
+    ICFG* icfg=pag->getICFG();
+    //添加一个Entry节点
+    VFGNode* entryVFGNode=new VFGNode(entryId++,VFGNode::VFGNodeK::NPtr);
+    svfg->addGNode(entryId++,entryVFGNode);
+    FunToFunEntryVFGNodeMap.insert({fun->getLLVMFun(),entryVFGNode});
+    //遍历LLVMFun的每个StmtSVFG节点
+    const BasicBlock* bb;
     for(auto node:svfg->getVFGNodes(fun)){
-        if(StmtSVFGNode* node=SVFUtil::dyn_cast<StmtSVFGNode>(node)){
-            const BasicBlock* bb=node->getInst()->getParent();
-            auto cditer=CDMap.find(getNodeIDFromBB(bb));
-            if(cditer==CDMap.end() )
-                return;
-            CDSetTy cdSet=cditer->second;
-//            for
+        if(StmtVFGNode* stmtNode=SVFUtil::dyn_cast<StmtSVFGNode>(node))
+        {
+            bb=stmtNode->getInst()->getParent();
+            outs()<<"Stmt_id:"<<node->getId()<<"\n";
+        }
+        else if(PHIVFGNode* phiNode=SVFUtil::dyn_cast<PHIVFGNode>(node)){
+            bb=phiNode->getICFGNode()->getBB();
+            outs()<<"PHI_id:"<<node->getId()<<"\n";
+        }
+        else{
+            continue;
+        }
+        auto cditer=CDMap.find(getNodeIDFromBB(bb));
+        if(cditer==CDMap.end() )
+            continue;
+        //控制节点所在的基本快
+        const BasicBlock * cnodeBB=getGNode(cditer->first)->getBasicBlock();
+        //控制节点中CMP指令对应的ICFG节点
+
+        CDSetTy cdSet=cditer->second;
+        for(auto cdSetElem:cdSet){
+            const BasicBlock* dependBB=getGNode(cdSetElem.getNodeID())->getBasicBlock();
+            //处理如果依赖beforeentry，则连接到上面新建的entry节点
+            if(dependBB->getName()=="before_entry"){
+                VFGEdge* vfgedge=new VFGEdge(entryVFGNode,node,VFGEdge::VFGEdgeK::IntraIndirectVF);
+                svfg->addSVFGEdge(vfgedge);
+                continue;
+            }
+            const Value* val=getCmpInst(dependBB)->getValueName()->getValue();
+            //get CmpNode From BB
+            VFGNode* controlVFGNode=svfg->getCmpVFGNode(pag->getPAGNode(pag->getValueNode(val)));
+            VFGEdge* vfgedge=new VFGEdge(controlVFGNode,node,VFGEdge::VFGEdgeK::IntraIndirectVF);
+            //添加节点
+            svfg->addSVFGEdge(vfgedge);
         }
     }
-    for(auto iter=CDMap.begin(),eiter=CDMap.end();iter!=eiter;++iter){
-        const BasicBlock* curbb=getGNode(iter->first)->getBB();
-        for(auto& inst: *curbb){
-
-        }
+}
+const CmpInst* CDG::getCmpInst(const BasicBlock* bb){
+    for(auto& inst:*bb){
+        if(isa<CmpInst>(inst))
+            return dyn_cast<CmpInst>(&inst);
     }
-
-
+    return nullptr;
 }
 
 
@@ -380,7 +479,7 @@ void ControlDependenceGraph::addRegionNodeToCDG()
         regionNode->addOutgoingEdge(region2dst);
         dstNode->addIncomingEdge(region2dst);
     }
-    dump("cdg_after_initR");
+//    dump("cdg_after_initR");
     /* 3. 后序遍历 后向支配树，计算当前结点 N 的 CD 与 后支配树中 N 的每个直接子结点的CD 的交集 INT。
           判断如果R的控制依赖关系的前驱结点集合，是某个其他节点的控制依赖关系的前驱结点集合的子集，
           则使该节点直接依赖R来进行控制，以代替CD中的节点
@@ -390,7 +489,7 @@ void ControlDependenceGraph::addRegionNodeToCDG()
     assert(root);
     auto pdtRootNode = PDT->getNode(root);
     PostOrderTraversalPDTNode(pdtRootNode);
-    dump("cdg_after_mergeR");
+//    dump("cdg_after_mergeR");
     /**
      *  4. 对于具有多个控制依赖后继结点，并且具有相同关联标签L的任何谓词节点P，创建一个区域节点R。
      *     使图中具有控制依赖前驱结点 P 且标签L的每个节点都具有该区域节点 R。
