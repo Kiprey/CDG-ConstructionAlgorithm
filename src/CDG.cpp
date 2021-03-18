@@ -78,7 +78,7 @@ void CDG::buildSVFDGFromFun(const SVFFunction *fun) {
     PAG* pag=svfg->getPAG();
     ICFG* icfg=pag->getICFG();
     //添加一个Entry节点
-    VFGNode* entryVFGNode=new VFGNode(entryId++,VFGNode::VFGNodeK::NPtr);
+    VFGNode* entryVFGNode=new VFGNode(entryId,VFGNode::VFGNodeK::NPtr);
     svfg->addGNode(entryId++,entryVFGNode);
     FunToFunEntryVFGNodeMap.insert({fun->getLLVMFun(),entryVFGNode});
     //遍历LLVMFun的每个StmtSVFG节点

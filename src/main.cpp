@@ -43,25 +43,10 @@ int main(int argc, char **argv)
     /// Build Program Assignment Graph (PAG)
     PAGBuilder builder;
     PAG *pag = builder.build(svfModule);
-    /// ICFG
-    const SVFFunction *fun;
-    bool isFindInputFun = false;
-    for (auto it = svfModule->begin(), ie = svfModule->end(); it != ie; it++)
-    {
-        outs() << "FuncName::" << (*it)->getName() << "\n";
-        if ((*it)->getName().compare(InputFuncName)==0)
-        {
-            fun = *it;
-            isFindInputFun=true;
-            break;
-        }
-    }
-    if(isFindInputFun==false) {
-        outs()<<"cant find input fun:"<<InputFuncName;
-        return 0;
-    }
 
+    /// ICFG
     ICFG *icfg = pag->getICFG();
+
     /// Create Andersen's pointer analysis
     Andersen* ander = AndersenWaveDiff::createAndersenWaveDiff(pag);
 
@@ -69,8 +54,29 @@ int main(int argc, char **argv)
     SVFGBuilder svfBuilder;
     SVFG* svfg = svfBuilder.buildFullSVFGWithoutOPT(ander);
     svfg->dump("the original svfg");
+
     ControlDependenceGraph *cdGraph = new ControlDependenceGraph(icfg,svfg);
-    cdGraph->initCDG(fun);
+    const SVFFunction *fun;
+    bool isFindInputFun = false;
+
+    for (auto it = svfModule->begin(), ie = svfModule->end(); it != ie; it++)
+    {
+        outs() << "FuncName::" << (*it)->getName() << "\n";
+        fun = *it;
+        cdGraph->initCDG(fun);
+//        if ((*it)->getName().compare(InputFuncName)==0)
+//        {
+//
+//            isFindInputFun=true;
+//            break;
+//        }
+    }
+//    if(isFindInputFun==false) {
+//        outs()<<"cant find input fun:"<<InputFuncName;
+//        return 0;
+//    }
+
+
     cdGraph->buildSVFDG(svfModule);
 
     return 0;
